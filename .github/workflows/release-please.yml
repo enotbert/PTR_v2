@@ -1,0 +1,29 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          # Use default GITHUB_TOKEN. NOTE: PRs created by GITHUB_TOKEN do NOT
+          # trigger downstream workflows (incl. our required `ci` check). To
+          # satisfy branch protection on the release PR, the maintainer must
+          # close+reopen the PR (or push an empty commit) to trigger CI.
+          # See ADR-0002 for the long-term plan (PAT or GitHub App).
+          # token: ${{ secrets.RELEASE_PLEASE_TOKEN }}

@@ -92,6 +92,16 @@ Footer — связи и breaking changes:
 
 > При squash-merge заголовок PR становится сообщением коммита в `main`. Поэтому он должен соответствовать **тем же требованиям**, что и обычный CC-коммит, плюс содержать `PTR-XXX`.
 
+#### Исключение: автогенерируемые release-PR
+
+Release-PR, создаваемые автоматически workflow `release-please` (см. [ADR-0002](../../docs/adr/0002-use-release-please-for-versioning.md)), **освобождаются от требования содержать `PTR-XXX`**. Их заголовок имеет фиксированный формат:
+
+```
+chore(repo): release <version>
+```
+
+Это валидный CC-коммит (тип `chore`, scope `repo`); привязка к Linear-задаче не требуется, потому что release-PR агрегирует все ранее смерджанные изменения.
+
 ### Тело PR
 
 Заполняется по [`pull_request_template.md`](../../.github/pull_request_template.md). Обязательные секции:
