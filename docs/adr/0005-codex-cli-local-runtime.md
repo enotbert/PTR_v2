@@ -1,9 +1,11 @@
 # 0005 — Codex CLI runtime: LM Studio @ localhost + Qwen3-Coder
 
-- **Статус:** Accepted
+- **Статус:** Superseded by [ADR-0006](0006-python-lmstudio-coder-adapter.md)
 - **Дата:** 2026-05-03
 - **Авторы:** @enotbert
 - **Связано с:** [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md), [`.ai/rules/70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md), [`.cursor/skills/invoke-codex/SKILL.md`](../../.cursor/skills/invoke-codex/SKILL.md)
+
+> **Жизненный цикл:** runtime исполнителя кодинга из этого ADR **заменён** [ADR-0006](0006-python-lmstudio-coder-adapter.md) (Python-адаптер к LM Studio). Текст ниже сохранён как **архив принятого тогда решения** (LM Studio, local-first, env `CODEX_*`). Команды `codex --oss` для роли coder в репозитории **не используются**; актуальный контракт — `PTR_CODER_*` в ADR-0006.
 
 ## Контекст
 
