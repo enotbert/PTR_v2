@@ -1,0 +1,43 @@
+# Dev stack skeleton (frontend, backend, Postgres). PTR-17 — see docs/tech/docker-dev.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ptr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ptr_dev_demo}
+      POSTGRES_DB: ${POSTGRES_DB:-ptr_dev}
+    ports:
+      - "${POSTGRES_PUBLISH_PORT:-15432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ptr}:${POSTGRES_PASSWORD:-ptr_dev_demo}@postgres:5432/${POSTGRES_DB:-ptr_dev}
+    ports:
+      - "${BACKEND_PUBLISH_PORT:-18080}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PUBLISH_PORT:-15173}:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
