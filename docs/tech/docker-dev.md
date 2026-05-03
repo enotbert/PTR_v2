@@ -6,15 +6,17 @@
 
 ## Порты (публикация на хост)
 
-| Сервис    | Контейнер | Переменная хост-порта   | По умолчанию |
-|-----------|-----------|-------------------------|--------------|
-| Postgres  | `postgres` | `POSTGRES_PUBLISH_PORT` | `5432`       |
-| Backend   | `backend` | `BACKEND_PUBLISH_PORT`  | `8000`       |
-| Frontend  | `frontend`| `FRONTEND_PUBLISH_PORT` | `5173`       |
+Дефолты **намеренно нестандартные**, чтобы не пересекаться с типичными локальными сервисами: Postgres **5432**, HTTP **8000**, Vite **5173**. Внутри Docker-сети сервисы по-прежнему слушают стандартные контейнерные порты (см. `docker-compose.yml`).
+
+| Сервис    | Контейнер | Переменная хост-порта   | По умолчанию (хост → контейнер) |
+|-----------|-----------|-------------------------|----------------------------------|
+| Postgres  | `postgres` | `POSTGRES_PUBLISH_PORT` | `15432 → 5432`                   |
+| Backend   | `backend` | `BACKEND_PUBLISH_PORT`  | `18080 → 8000`                   |
+| Frontend  | `frontend`| `FRONTEND_PUBLISH_PORT` | `15173 → 5173`                   |
+
+При коллизии с другими процессами задай другие значения в `.env` (имена см. [.env.example](../../.env.example)).
 
 ## Быстрый старт
-
-Если локально уже заняты порты **5432** или **5173**, задай в `.env` свои `POSTGRES_PUBLISH_PORT` / `FRONTEND_PUBLISH_PORT` (см. `.env.example`).
 
 1. Создай файл `.env` в корне (не коммитить). Ориентир по именам переменных — `.env.example`.
 2. Собери конфигурацию Compose (быстрая проверка синтаксиса):
@@ -29,7 +31,7 @@ docker compose config
 docker compose up --build
 ```
 
-4. Проверка backend и Postgres: открой `http://localhost:8000/health` (порт см. `BACKEND_PUBLISH_PORT`). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.
+4. Проверка backend и Postgres: открой `http://localhost:18080/health` (порт см. `BACKEND_PUBLISH_PORT`, по умолчанию **18080**). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.
 
 ## Сеть и подключение к БД
 
