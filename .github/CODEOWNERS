@@ -1,0 +1,15 @@
+# Код-владельцы PTR v2.
+# Документация: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# На текущем этапе — соло-разработчик. По мере роста команды/агентов добавим
+# отдельных владельцев на критические пути (.github/, .ai/rules/, /infra, /docs/adr/).
+
+* @enotbert
+
+# Критические пути — явно дублируем для прозрачности и подсветки в GitHub UI.
+/.github/                @enotbert
+/.ai/rules/              @enotbert
+/AGENTS.md               @enotbert
+/docs/adr/               @enotbert
+/CODEOWNERS              @enotbert
+/.github/CODEOWNERS      @enotbert

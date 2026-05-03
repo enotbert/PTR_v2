@@ -2,14 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
+
+# Cancel in-progress runs for the same branch/PR when a new commit is pushed.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  checkout:
+  ci:
+    name: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Smoke
-        run: echo "Monorepo root — add per-language workflows or jobs as packages land."
+        run: |
+          echo "Monorepo root CI — umbrella job."
+          echo "Per-language jobs (lint / typecheck / test / build / e2e) are added as packages land."

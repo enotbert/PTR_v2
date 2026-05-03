@@ -8,10 +8,21 @@ Thumbs.db
 *.swp
 *.swo
 
-# Env / secrets
+# Env / secrets — see .ai/rules/80-security-and-secrets.md
 .env
 .env.*
 !.env.example
+!.env.*.example
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+*-secret.json
+*.secret
 
 # Python
 __pycache__/
