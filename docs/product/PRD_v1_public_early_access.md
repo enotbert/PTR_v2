@@ -138,6 +138,7 @@ v1 не должна доказывать:
 - Backend выдаёт награды.
 - Игрок видит награду после raid outcome.
 - Игрок видит вклад в таверну или персональный прогресс.
+- Первый weekly event v1 описан в `docs/product/weekly_event_v1.md`: `weekly_route_reopening`.
 - Повторный запрос не должен дублировать reward.
 
 ### 6.7. Share/invite
@@ -165,6 +166,9 @@ v1 не должна доказывать:
 - raid_failed;
 - reward_claimed;
 - tavern_contribution_made;
+- weekly_event_viewed;
+- weekly_contribution_made;
+- weekly_reward_claimed;
 - invite_created;
 - invite_opened;
 - share_card_created.
@@ -196,6 +200,7 @@ v1 можно считать готовой к публичному early access
 - [ ] Backend валидирует combat action и rewards.
 - [ ] Reward нельзя получить повтором одного и того же запроса.
 - [ ] Видно, как результат рейда влияет на таверну или прогресс.
+- [ ] Есть первый weekly event, который показывает общий weekly progress таверны и даёт повод вернуться.
 - [ ] Есть базовый share/invite result.
 - [ ] Есть минимальная аналитика core funnel.
 - [ ] Есть smoke-набор Playwright для ключевого flow.
@@ -235,6 +240,7 @@ v1 можно считать готовой к публичному early access
 - Transport/realtime модель боя: WebSocket для live lobby/combat, REST/OpenAPI для обычного API.
 - Минимальный набор ролей и навыков v1: ADR-0007.
 - Минимальный набор врагов/босса v1: `docs/product/enemy_roster_v1.md`.
+- Первый weekly event/modifier v1: `docs/product/weekly_event_v1.md`.
 
 Осталось закрыть:
 
