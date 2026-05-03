@@ -66,3 +66,16 @@ jobs:
 
       - name: pytest (ptr_coder)
         run: pytest packages/ptr_coder/tests -q
+
+      - name: Install uv (backend)
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "apps/backend/uv.lock"
+
+      - name: pytest (apps/backend)
+        working-directory: apps/backend
+        run: |
+          uv sync --frozen --group dev
+          uv run pytest -q
