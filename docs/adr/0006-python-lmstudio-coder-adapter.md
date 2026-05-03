@@ -87,11 +87,11 @@
 
 ### Что нужно сделать (follow-up, вне этого ADR-текста)
 
-- [ ] Реализовать пакет `packages/ptr_coder/` (зависимости, lockfile, тесты — отдельный PR после принятия ADR).
+- [x] Реализовать пакет `packages/ptr_coder/` (зависимости, тесты; lockfile не вводим на первом шаге).
 - [ ] Переписать [`.ai/rules/70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md) под вызов Python-адаптера (возможно переименование файла — отдельное обсуждение).
 - [ ] Обновить / переименовать [`.cursor/skills/invoke-codex/SKILL.md`](../../.cursor/skills/invoke-codex/SKILL.md) → процесс `invoke-coder` (или аналог).
 - [ ] Обновить [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md): убрать Codex CLI как coder, описать адаптер.
-- [ ] Добавить `.env.example` корневые ключи `PTR_CODER_BASE_URL` / `PTR_CODER_MODEL` (без секретов).
+- [x] Добавить `.env.example` корневые ключи `PTR_CODER_BASE_URL` / `PTR_CODER_MODEL` (без секретов).
 - [ ] Обновить `AGENTS.md` §6 таблицу ADR и §9 «Принятые решения» (строка про Codex CLI → адаптер).
 
 ## Ссылки

@@ -51,3 +51,18 @@ jobs:
             echo "::endgroup::"
           done
           exit "$status"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: packages/ptr_coder/pyproject.toml
+
+      - name: Install ptr_coder (dev)
+        run: |
+          python -m pip install -U pip
+          pip install -e "./packages/ptr_coder[dev]"
+
+      - name: pytest (ptr_coder)
+        run: pytest packages/ptr_coder/tests -q
