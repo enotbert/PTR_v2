@@ -22,3 +22,32 @@ jobs:
         run: |
           echo "Monorepo root CI — umbrella job."
           echo "Per-language jobs (lint / typecheck / test / build / e2e) are added as packages land."
+
+      - name: Shellcheck (lint shell scripts)
+        run: |
+          if ls scripts/**/*.sh scripts/*.sh 1> /dev/null 2>&1 || find scripts -type f -name '*.sh' | grep -q .; then
+            find scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck
+          else
+            echo "No shell scripts under scripts/ — skipping."
+          fi
+
+      - name: Handoff validator tests
+        run: bash scripts/tests/test-validate-handoff.sh
+
+      - name: Validate all handoffs
+        run: |
+          shopt -s nullglob
+          files=( .ai/handoffs/PTR-*.md )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No handoff files (.ai/handoffs/PTR-*.md) — skipping."
+            exit 0
+          fi
+          status=0
+          for f in "${files[@]}"; do
+            echo "::group::Validating $f"
+            if ! bash scripts/validate-handoff.sh "$f"; then
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$status"
