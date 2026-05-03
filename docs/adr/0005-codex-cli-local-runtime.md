@@ -3,7 +3,7 @@
 - **Статус:** Superseded by [ADR-0006](0006-python-lmstudio-coder-adapter.md)
 - **Дата:** 2026-05-03
 - **Авторы:** @enotbert
-- **Связано с:** [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md), [`.ai/rules/70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md), [`.cursor/skills/invoke-codex/SKILL.md`](../../.cursor/skills/invoke-codex/SKILL.md)
+- **Связано с:** [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md), [`.ai/rules/70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md) (преемник `70-orchestration-codex-cli.md`), [`.cursor/skills/invoke-ptr-coder/SKILL.md`](../../.cursor/skills/invoke-ptr-coder/SKILL.md)
 
 > **Жизненный цикл:** runtime исполнителя кодинга из этого ADR **заменён** [ADR-0006](0006-python-lmstudio-coder-adapter.md) (Python-адаптер к LM Studio). Текст ниже сохранён как **архив принятого тогда решения** (LM Studio, local-first, env `CODEX_*`). Команды `codex --oss` для роли coder в репозитории **не используются**; актуальный контракт — `PTR_CODER_*` в ADR-0006.
 
@@ -11,7 +11,7 @@
 
 [`60-agent-roles.md`](../../.ai/rules/60-agent-roles.md) фиксирует Codex CLI в режиме `--oss` как **исполнителя кодинговых задач** (coder). Режим `--oss` подразумевает подключение к **OpenAI-совместимому endpoint'у** — никаких вшитых ключей или менеджмент-плоскости OpenAI на этом пути нет, нужен внешний сервер с моделью.
 
-До этого ADR в [`70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md) и [`invoke-codex` skill](../../.cursor/skills/invoke-codex/SKILL.md) шаблон вызова стоял как `<placeholder>`. Это было единственным открытым пунктом в `AGENTS.md` §9 и блокировало возможность выполнить хотя бы одну реальную итерацию делегирования из Cursor → Codex CLI.
+До этого ADR в правиле оркестрации (ныне [`70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md), исторически `70-orchestration-codex-cli.md`) и скиле вызова шаблон стоял как `<placeholder>`. Это было единственным открытым пунктом в `AGENTS.md` §9 и блокировало возможность выполнить хотя бы одну реальную итерацию делегирования из Cursor → Codex CLI.
 
 Нужно зафиксировать:
 
@@ -68,32 +68,32 @@ codex --oss --model $model --host $codexHost
 
 ### Что НЕ зафиксировано этим ADR
 
-- **Способ передачи handoff'а Codex CLI** (`--instructions <file>`, stdin-redirect, иной флаг). Это операционная деталь, разрешится на первом реальном делегировании, отдельного ADR не требует — обновим [`70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md) и `invoke-codex` skill по факту.
+- **Способ передачи handoff'а Codex CLI** (`--instructions <file>`, stdin-redirect, иной флаг). Исторически планировалось уточнить в правилах оркестрации; фактическая замена — **ptr_coder** и `--handoff` (см. [ADR-0006](0006-python-lmstudio-coder-adapter.md)).
 - **Альтернативные модели** для конкретных классов задач (например, более тяжёлая модель для архитектурных задач). Сейчас одна модель на всё; смена → новый ADR.
 
 ## Последствия
 
 ### Положительные
 
-- Закрывается последний открытый процессный вопрос из `AGENTS.md` §9 — `invoke-codex` skill становится исполнимым без вопросов к человеку (при условии работающего LM Studio).
+- Закрывался открытый процессный вопрос из `AGENTS.md` §9 — последующая эволюция: см. **ADR-0006** и скил `invoke-ptr-coder`.
 - Local-first: код не покидает машину, нет платы за токены, нет внешнего токена в ротации.
 - Env-контракт даёт точку расширения: можно переключиться на другой хост/модель (например, Ollama, или mock-сервер в CI) без правок документации и кода — только переменные окружения.
 
 ### Отрицательные / компромиссы
 
-- **Жёсткая зависимость от LM Studio как процесса**: если LM Studio не запущен или модель не загружена — Codex CLI упадёт с network/timeout-ошибкой. Pre-flight в `invoke-codex` skill должен ловить это **до** вызова.
+- **Жёсткая зависимость от LM Studio как процесса**: если LM Studio не запущен или модель не загружена — клиент упадёт с network/timeout-ошибкой. Pre-flight в скиле `invoke-ptr-coder` должен ловить это **до** вызова.
 - **Ресурсы машины**: Qwen3-Coder-30B-A3B в актуальных квантизациях (Q4_K_M / MXFP4) занимает порядка 16–20 ГБ VRAM/RAM. На слабых машинах модель не загрузится — нужно будет переключаться на более лёгкую через `CODEX_MODEL`.
 - **Single-machine setup**: автоматизация в CI (GitHub Actions) не сможет вызывать Codex CLI «из коробки» — там нет LM Studio. Если когда-то понадобится агентский CI — отдельный ADR (managed cloud, или self-hosted runner с моделью, или mock).
 - **Привязка к UI-тулу**: LM Studio — закрытый продукт. Если он исчезнет/станет платным/неудобным — миграция через новый ADR (Ollama / vLLM / llama.cpp).
 
 ## Что нужно сделать
 
-- [x] Убрать `<placeholder>` из [`70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md), вписать реальную команду + Prerequisites + Troubleshooting.
-- [x] Обновить [`invoke-codex` skill](../../.cursor/skills/invoke-codex/SKILL.md) Step 2 (Build invocation) и Pre-flight (проверка `CODEX_HOST`).
+- [x] Убрать `<placeholder>` из правил оркестрации (исторически `70-orchestration-codex-cli.md`; преемник — [`70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md)), вписать реальную команду + Prerequisites + Troubleshooting.
+- [x] Обновить скил делегирования (исторически `invoke-codex`; преемник — [`invoke-ptr-coder`](../../.cursor/skills/invoke-ptr-coder/SKILL.md)) Step 2 и Pre-flight.
 - [x] Закрыть открытый вопрос в `AGENTS.md` §9 (перевести в таблицу «Принятые решения»).
 - [x] Добавить ADR-0005 в индексы (`docs/adr/README.md`, `AGENTS.md` §6).
 - [ ] **Future:** при первой реальной делегации — определить способ подачи handoff'а (`--instructions` / stdin) и обновить документацию.
-- [ ] **Future:** документировать pre-flight `curl /v1/models` как часть `invoke-codex` skill, если на практике окажется, что «забытый запуск LM Studio» — частая ошибка.
+- [x] Pre-flight `curl /v1/models` задокументирован в [`invoke-ptr-coder`](../../.cursor/skills/invoke-ptr-coder/SKILL.md) и [`70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md).
 
 ## Ссылки
 

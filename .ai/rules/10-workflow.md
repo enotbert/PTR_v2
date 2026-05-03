@@ -36,7 +36,7 @@
 - План тестирования.
 - Известные риски и edge cases.
 
-Если задача делегируется Codex CLI — план **обязательно** фиксируется в файле `.ai/handoffs/PTR-XXX-<slug>.md` (см. [`70-orchestration-codex-cli.md`](70-orchestration-codex-cli.md)) с явным указанием персоны.
+Если задача делегируется ptr_coder — план **обязательно** фиксируется в файле `.ai/handoffs/PTR-XXX-<slug>.md` (см. [`70-orchestration-ptr-coder.md`](70-orchestration-ptr-coder.md)) с явным указанием персоны.
 
 ## Шаг 3. Создание ветки
 

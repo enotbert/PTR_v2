@@ -2,14 +2,14 @@
 
 ## Goal
 
-Реализовать скрипт `scripts/validate-handoff.sh`, который проверяет, что переданный markdown-файл (handoff из `.ai/handoffs/PTR-XXX-<slug>.md`) содержит **все девять обязательных секций** по протоколу из `.ai/rules/70-orchestration-codex-cli.md`. Сопроводить простым тест-раннером и фикстурами **без внешних зависимостей**.
+Реализовать скрипт `scripts/validate-handoff.sh`, который проверяет, что переданный markdown-файл (handoff из `.ai/handoffs/PTR-XXX-<slug>.md`) содержит **все девять обязательных секций** по протоколу из `.ai/rules/70-orchestration-ptr-coder.md`. Сопроводить простым тест-раннером и фикстурами **без внешних зависимостей**.
 
 Это **первая реальная делегация** Cursor → Codex CLI в проекте PTR. Помимо самого деливерэбла, побочно проверяется работоспособность канонической команды Codex CLI (ADR-0005) и удобство handoff-протокола.
 
 ## Context
 
-- Протокол хэндоффов и список обязательных секций: [`.ai/rules/70-orchestration-codex-cli.md`](../rules/70-orchestration-codex-cli.md).
-- Как Cursor вызывает Codex и валидирует результат: [`.cursor/skills/invoke-codex/SKILL.md`](../../.cursor/skills/invoke-codex/SKILL.md).
+- Протокол хэндоффов и список обязательных секций: [`.ai/rules/70-orchestration-ptr-coder.md`](../rules/70-orchestration-ptr-coder.md).
+- Как Cursor вызывает ptr_coder и валидирует результат: [`.cursor/skills/invoke-ptr-coder/SKILL.md`](../../.cursor/skills/invoke-ptr-coder/SKILL.md).
 - Глобальные правила и DoD: [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/40-code-quality.md`](../rules/40-code-quality.md).
 - Forbidden список: [`.ai/rules/90-forbidden.md`](../rules/90-forbidden.md). Особенно: **не трогать `.github/`, `.ai/rules/`, `AGENTS.md`, lockfiles, секреты**.
 - Существующих handoff-файлов кроме этого в репо нет — `.ai/handoffs/` содержит только `README.md`. Этот файл (`PTR-6-handoff-validator.md`) **сам должен пройти валидацию** после реализации.
@@ -170,7 +170,7 @@ Pipeline exercised end-to-end up to invocation. Codex CLI invocation failed at t
 
 ### Decision
 
-Project pivots away from Codex CLI as the coder runtime. A custom Python adapter that talks directly to LM Studio's OpenAI-compatible API will replace it. ADR-0005 is to be superseded by a forthcoming ADR-0006; `.cursor/skills/invoke-codex/`, `.ai/rules/70-orchestration-codex-cli.md`, and related Codex-CLI references will be deprecated/rewritten in a separate PR series. The handoff format itself remains the orchestration contract — the validator stays useful regardless of who consumes the handoffs.
+Project pivots away from Codex CLI as the coder runtime. A custom Python adapter (`ptr_coder`) talks to LM Studio's OpenAI-compatible API ([ADR-0006](../../docs/adr/0006-python-lmstudio-coder-adapter.md)). Orchestration rule is now [`.ai/rules/70-orchestration-ptr-coder.md`](../rules/70-orchestration-ptr-coder.md); skill [`.cursor/skills/invoke-ptr-coder/SKILL.md`](../../.cursor/skills/invoke-ptr-coder/SKILL.md). The handoff format remains the orchestration contract — the validator stays useful regardless of who consumes the handoffs.
 
 ### Files delivered (matches `## Files in scope`)
 
@@ -194,13 +194,13 @@ Plus orchestrator additions outside the original scope (Cursor's responsibility,
 
 ### Out-of-scope issues noticed
 
-- `.ai/rules/65-personas.md` brief templates begin with `## Persona: <name>` while `.ai/rules/70-orchestration-codex-cli.md` defines the section header strictly as `## Persona`. This handoff used the strict form to remain validator-compatible; the persona rule template inconsistency should be reconciled in a separate small docs PR.
+- `.ai/rules/65-personas.md` brief templates begin with `## Persona: <name>` while `.ai/rules/70-orchestration-ptr-coder.md` / валидатор ожидают заголовок строго `## Persona`. This handoff used the strict form to remain validator-compatible; the persona rule template inconsistency should be reconciled in a separate small docs PR.
 - ADR-0005's canonical command (`--host http://localhost:1234`) does not match real `codex --help` (no `--host` flag; the canonical is `codex exec --oss --local-provider lmstudio` or via profile). Moot now that we are pivoting away from Codex CLI, but worth noting for ADR-0006.
 - LM Studio API returns `data` instead of `models` in `/v1/models`, causing a benign `failed to refresh available models` warning in Codex CLI logs. Not blocking.
 
 ### Follow-ups (separate Linear tickets)
 
 1. ADR-0006: custom Python adapter for LM Studio (supersedes ADR-0005).
-2. Rebrand and rewrite `.ai/rules/70-orchestration-codex-cli.md` and `.cursor/skills/invoke-codex/` for the new adapter.
+2. ~~Rebrand orchestration docs~~ Done: `70-orchestration-ptr-coder.md`, `invoke-ptr-coder` skill.
 3. Externalize model identifier (`CODEX_MODEL` / new env-var name TBD) into `.env.example` + a wrapper, so the user can swap models without committing changes.
-4. Reconcile `## Persona` header convention between `65-personas.md` brief templates and `70-orchestration-codex-cli.md` handoff template.
+4. Reconcile `## Persona` header convention between `65-personas.md` brief templates and the canonical handoff template in `70-orchestration-ptr-coder.md`.
