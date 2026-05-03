@@ -10,6 +10,8 @@ Owner: human product owner
 - **`docs/foundation/01_product_foundation.md`** — продуктовая формула, продуктовый scope v1, UX/PWA-принципы и продуктовое описание боя/live-ощущения.
 - **Этот PRD** — source of truth по **публичному early access**: цели релиза, ключевые user flows, функциональные и нефункциональные требования, acceptance criteria и release gates для внешних игроков.
 - **`docs/foundation/02_technical_foundation.md`** — tech stack, техконтракты (REST/OpenAPI, WebSocket-поведение, границы клиент/сервер), Docker и quality gates на уровне инженерии.
+- **`docs/tech/websocket-protocol-v1.md`** — минимальный WebSocket protocol contract для lobby/combat v1:
+  snapshots, events, commands, errors, sequence/idempotency и reconnect.
 - **Архитектурные решения** — полный текст в `docs/architecture/adrs/ADR-*.md`; актуальный перечень принятых решений — в `docs/architecture/ADR_LOG.md` (только актуальные `Accepted`; при `Superseded` старый ADR из лога убирается).
 - **`docs/foundation/03_linear_codex_agent_workflow.md`** — как оформлять Linear-задачи и handoff между ролями.
 
@@ -181,7 +183,7 @@ v1 не должна доказывать:
 - Нет key layout shift в бою, наградах и таверне.
 - Backend является source of truth для игрового состояния.
 - REST API contracts генерируются из backend OpenAPI schema.
-- WebSocket protocol schemas документируются отдельно.
+- WebSocket protocol schemas документируются отдельно в [`docs/tech/websocket-protocol-v1.md`](../tech/websocket-protocol-v1.md).
 - Local dev запускается через Docker Compose.
 - Generated/prototype assets отделены от final assets.
 
@@ -222,7 +224,8 @@ v1 можно считать готовой к публичному early access
 - Backend tests проходят.
 - Frontend typecheck/tests проходят.
 - OpenAPI client актуален.
-- WebSocket protocol для combat/lobby задокументирован и покрывает snapshot/event/command/error flow.
+- WebSocket protocol для combat/lobby задокументирован в
+  [`docs/tech/websocket-protocol-v1.md`](../tech/websocket-protocol-v1.md) и покрывает snapshot/event/command/error flow.
 - Миграции применяются на чистую БД.
 
 ### UX/PWA gate
@@ -242,6 +245,7 @@ v1 можно считать готовой к публичному early access
 - Минимальный набор врагов/босса v1: `docs/product/enemy_roster_v1.md`.
 - Первый weekly event/modifier v1: `docs/product/weekly_event_v1.md`.
 
-Осталось закрыть:
+Закрыто отдельными protocol docs:
 
-- Минимальный WebSocket protocol contract для battle/lobby events.
+- Минимальный WebSocket protocol contract для battle/lobby events:
+  [`docs/tech/websocket-protocol-v1.md`](../tech/websocket-protocol-v1.md).
