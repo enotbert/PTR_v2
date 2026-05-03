@@ -59,14 +59,33 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 |---|---|
 | [`.ai/rules/00-overview.md`](.ai/rules/00-overview.md) | Принципы, термины, навигация по правилам |
 | [`.ai/rules/10-workflow.md`](.ai/rules/10-workflow.md) | Полный цикл работы: от задачи до merge |
+| [`.ai/rules/11-work-types.md`](.ai/rules/11-work-types.md) | Вариации цикла по типам задач: feature / bugfix / refactor / docs / infra |
 | [`.ai/rules/20-git-and-branching.md`](.ai/rules/20-git-and-branching.md) | Trunk-based, имена веток, что запрещено в git |
 | [`.ai/rules/30-commits-and-prs.md`](.ai/rules/30-commits-and-prs.md) | Conventional Commits, формат PR, размер PR |
 | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) | Линт, формат, типы, тесты, Playwright для UI, Definition of Done |
 | [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md) | Linear как единственный источник истины, статусы, создание задач |
 | [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) | Кто что делает: Cursor, Codex CLI, человек |
+| [`.ai/rules/65-personas.md`](.ai/rules/65-personas.md) | Персоны делегирования (backend / frontend / qa / infra / docs) и шаблоны брифов |
 | [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) | Как Cursor вызывает Codex CLI как subprocess |
 | [`.ai/rules/80-security-and-secrets.md`](.ai/rules/80-security-and-secrets.md) | Политика секретов, `.env`, доступ агентов к чувствительным данным |
 | [`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md) | Чёрный список действий, всегда требующих явного разрешения человека |
+
+## 5a. Скилы (`.cursor/skills/`)
+
+Скилы — операционные «как это делать» инструкции, выполняющие конкретные шаги процесса. В отличие от правил `.ai/rules/`, которые описывают **что** и **зачем**, скилы описывают **как именно** агент выполняет конкретную операцию. Хранятся в `.cursor/skills/` (версионируются, видны всем).
+
+| Скил | О чём |
+|---|---|
+| [`.cursor/skills/invoke-codex/SKILL.md`](.cursor/skills/invoke-codex/SKILL.md) | Один цикл вызова Codex CLI как subprocess по существующему хэндоффу: pre-flight → запуск → захват результата → независимая валидация → решение об итерации |
+| [`.cursor/skills/linear-flow/SKILL.md`](.cursor/skills/linear-flow/SKILL.md) | Жизненный цикл задачи в Linear (PTR): pickup, статус-переходы, комментарии, follow-up задачи, обработка неоднозначности |
+
+**Правила добавления скилов:**
+
+- Только в `.cursor/skills/` (не в `~/.cursor/skills/` — это персональное).
+- Формат — Cursor SKILL.md с YAML frontmatter (`name`, `description`).
+- `name` — kebab-case, `description` — третье лицо, явные триггеры.
+- SKILL.md не длиннее ~500 строк; детали — в дополнительных файлах рядом.
+- Любой новый скил, оркеструющий процесс, ссылается на соответствующие правила в `.ai/rules/` (а не дублирует их).
 
 ## 6. Архитектурные решения (ADR)
 
