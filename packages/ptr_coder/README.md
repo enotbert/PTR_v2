@@ -21,7 +21,7 @@ pip install -e "./packages/ptr_coder[dev]"
 | `PTR_CODER_MODEL` | `gemma-4-26b-a4b-it` | Model id known to the server |
 | `PTR_CODER_API_KEY` | `lm-studio` | Bearer token string (LM Studio accepts arbitrary local keys) |
 
-Copy [`.env.example`](../../.env.example) to `.env.local` (gitignored) and adjust without touching the repo.
+Copy variable names from [`.env.development.example`](../../.env.development.example) (section ptr_coder; see also root [`.env.example`](../../.env.example)) into `.env.local` (gitignored) or your shell and adjust without committing.
 
 ## CLI
 

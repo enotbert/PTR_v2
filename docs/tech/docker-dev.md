@@ -14,21 +14,21 @@
 | Backend   | `backend` | `BACKEND_PUBLISH_PORT`  | `18080 → 8000`                   |
 | Frontend  | `frontend`| `FRONTEND_PUBLISH_PORT` | `15173 → 5173`                   |
 
-При коллизии с другими процессами задай другие значения в `.env` (имена см. [.env.example](../../.env.example)).
+При коллизии с другими процессами задай другие значения в [.env.development.example](../../.env.development.example) (после копирования в `.env.development`) или переопредели переменные в своём env-файле.
 
 ## Быстрый старт
 
-1. Создай файл `.env` в корне (не коммитить). Ориентир по именам переменных — `.env.example`.
+1. Скопируй [.env.development.example](../../.env.development.example) в **`.env.development`** в корне (файл в `.gitignore`, не коммитить). Для продакшен-окружения используй отдельный шаблон [.env.production.example](../../.env.production.example) и инжект секретов через платформу — **не** переиспользуй dev-пароли.
 2. Собери конфигурацию Compose (быстрая проверка синтаксиса):
 
 ```bash
-docker compose config
+docker compose --env-file .env.development config
 ```
 
 3. Подними стек:
 
 ```bash
-docker compose up --build
+docker compose --env-file .env.development up --build
 ```
 
 4. Проверка backend и Postgres: открой `http://localhost:18080/health` (порт см. `BACKEND_PUBLISH_PORT`, по умолчанию **18080**). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.

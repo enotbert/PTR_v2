@@ -12,7 +12,7 @@
 
 ## Правило обновления
 
-- Если меняется состав сервисов Compose, порты или переменные окружения стека, обновлять [docker-dev.md](docker-dev.md) и при необходимости `.env.example` в том же PR.
+- Если меняется состав сервисов Compose, порты или переменные окружения стека, обновлять [docker-dev.md](docker-dev.md) и при необходимости `.env.development.example` / `.env.production.example` / корневой `.env.example` в том же PR.
 - Если меняется WebSocket message name, payload shape или reconnect/idempotency behavior, обновлять protocol doc в том
   же PR, где меняется соответствующее решение.
 - Если изменение расширяет scope v1 или меняет transport model, сначала оформить Linear issue и при необходимости ADR.
