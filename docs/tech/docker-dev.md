@@ -33,6 +33,26 @@ docker compose --env-file .env.development up --build
 
 4. Проверка backend и Postgres: открой `http://localhost:18080/health` (порт см. `BACKEND_PUBLISH_PORT`, по умолчанию **18080**). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.
 
+## Pytest (backend smoke)
+
+Образ `backend` собирается с **uv** и lockfile (`apps/backend/uv.lock`); dev-группа установлена в образе, чтобы можно было гонять тесты без отдельного Dockerfile.
+
+Локально (из корня репозитория):
+
+```bash
+cd apps/backend
+uv sync --frozen --group dev
+uv run pytest -q
+```
+
+Внутри Compose после `docker compose ... build` (тот же `--env-file`, что и для `up`):
+
+```bash
+docker compose --env-file .env.development run --rm --no-deps backend uv run pytest -q
+```
+
+Команда `run --no-deps` поднимает одноразовый контейнер с тем же образом, что и у сервиса `backend`, без старта `postgres`; для этих smoke-тестов БД мокируется в pytest.
+
 ## Сеть и подключение к БД
 
 Сервисы разделяют **дефолтную сеть Compose**. Backend получает строку **`DATABASE_URL`** (см. `docker-compose.yml`) с хостом `postgres` и портом `5432` внутри сети. Менять хост при локальном compose не требуется.
