@@ -117,6 +117,7 @@ v1 не должна доказывать:
 - Локальный персонаж закреплён в центре нижней части canvas.
 - Party order фиксирован для всех игроков.
 - Мобы/босс находятся в дальней части арены.
+- Минимальный набор врагов/босса v1 и вектор enemy synergy описаны в `docs/product/enemy_roster_v1.md`.
 - Игрок выбирает цель тапом.
 - Навыки имеют понятные valid/invalid targets.
 - Backend валидирует действие и рассчитывает результат.
@@ -232,9 +233,9 @@ v1 можно считать готовой к публичному early access
 
 - Renderer для 2D combat canvas: PixiJS + React HUD.
 - Transport/realtime модель боя: WebSocket для live lobby/combat, REST/OpenAPI для обычного API.
+- Минимальный набор ролей и навыков v1: ADR-0007.
+- Минимальный набор врагов/босса v1: `docs/product/enemy_roster_v1.md`.
 
 Осталось закрыть:
 
-- Минимальный набор ролей и навыков v1.
-- Минимальный набор врагов/боссов v1.
 - Минимальный WebSocket protocol contract для battle/lobby events.
