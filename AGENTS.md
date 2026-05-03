@@ -45,7 +45,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 4. Создать ветку `PTR-XXX-<kebab-slug>` от свежего `main`.
 5. Реализовать изменения; на каждом значимом шаге — коммит в стиле Conventional Commits.
 6. Прогнать локально: линтер → форматер → типы → тесты (для UI — Playwright/E2E).
-7. Запушить ветку, открыть PR с заголовком `<type>(<scope>): PTR-XXX <description>`.
+7. Запушить ветку, открыть **один** PR с заголовком `<type>(<scope>): PTR-XXX <description>` (**один Linear-issue = один PR**; см. [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md)).
 8. Перевести задачу в **In Review**, оставить ссылку на PR в Linear.
 9. **Дождаться ревью человека.** Агент **не мерджит PR самостоятельно**.
 
@@ -63,7 +63,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 | [`.ai/rules/20-git-and-branching.md`](.ai/rules/20-git-and-branching.md) | Trunk-based, имена веток, что запрещено в git |
 | [`.ai/rules/30-commits-and-prs.md`](.ai/rules/30-commits-and-prs.md) | Conventional Commits, формат PR, размер PR |
 | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) | Линт, формат, типы, тесты, Playwright для UI, Definition of Done |
-| [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md) | Linear как единственный источник истины, статусы, создание задач |
+| [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md) | Linear как единственный источник истины, статусы, создание задач, **один issue = один PR** |
 | [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) | Кто что делает: Cursor, ptr_coder, человек |
 | [`.ai/rules/65-personas.md`](.ai/rules/65-personas.md) | Персоны делегирования (backend / frontend / qa / infra / docs) и шаблоны брифов |
 | [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md) | Как Cursor вызывает ptr_coder (LM Studio) по handoff |
@@ -109,6 +109,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 PR может быть смерджен **только если**:
 
 - [ ] Заголовок PR соответствует формату `<type>(<scope>): PTR-XXX <description>`
+- [ ] PR закрывает ровно одну задачу Linear (**один issue = один PR**; см. [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md))
 - [ ] Линтер и форматер проходят без ошибок
 - [ ] Проверка типов (где применимо) проходит
 - [ ] Тесты добавлены/обновлены и зелёные локально
