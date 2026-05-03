@@ -1,6 +1,6 @@
 # 70 — Оркестрация: Cursor → Codex CLI
 
-> **Статус:** базовый протокол; точные флаги CLI и модель — placeholder, уточняются отдельным PR.
+> **Статус:** активно. Runtime, модель и env-контракт зафиксированы в [ADR-0005](../../docs/adr/0005-codex-cli-local-runtime.md). Способ подачи handoff'а Codex CLI (`--instructions` vs stdin vs иное) уточняется на первой реальной делегации.
 > **Решение:** Cursor вызывает Codex CLI **как subprocess** через свой Shell-инструмент. Передача задачи фиксируется письменно в `.ai/handoffs/`.
 
 ## Когда Cursor делегирует Codex CLI
@@ -75,25 +75,56 @@
 <Заполняется Codex CLI после завершения. Перечислить: какие файлы изменены, какие тесты прошли, какие проблемы вне скоупа обнаружены.>
 ```
 
-## Запуск Codex CLI (placeholder)
+## Запуск Codex CLI
 
-> **TODO (требует уточнения):** актуальные флаги, модель, режим non-interactive. Зафиксируем отдельным ADR и обновим этот раздел.
+Runtime, модель и host зафиксированы в [ADR-0005](../../docs/adr/0005-codex-cli-local-runtime.md): локальный сервер LM Studio @ `http://localhost:1234`, модель `qwen3-coder-30b-a3b-instruct`, оба значения параметризованы через переменные окружения с дефолтами.
 
-Базовый шаблон вызова из Cursor (через Shell):
+### Env-контракт
+
+| Переменная   | Назначение                                                | Дефолт                          |
+|--------------|-----------------------------------------------------------|---------------------------------|
+| `CODEX_HOST` | OpenAI-совместимый endpoint                               | `http://localhost:1234`         |
+| `CODEX_MODEL`| Идентификатор модели, загруженной в `CODEX_HOST`          | `qwen3-coder-30b-a3b-instruct`  |
+
+### Prerequisites (проверять перед каждым запуском)
+
+1. LM Studio запущен.
+2. В LM Studio включён **Local Server**.
+3. Модель из `CODEX_MODEL` (по дефолту `qwen3-coder-30b-a3b-instruct`) **загружена в память** — не просто скачана.
+4. Endpoint отвечает: `curl <CODEX_HOST>/v1/models` возвращает 200, нужная модель в списке.
+
+Если хоть один пункт не выполнен — Codex CLI упадёт с network/timeout-ошибкой. Исправить, повторить.
+
+### Канонический вызов
+
+POSIX shell (bash/zsh):
 
 ```bash
 codex --oss \
-  --model <agreed-model> \
-  --workdir . \
-  --instructions .ai/handoffs/PTR-XXX-<slug>.md \
-  --non-interactive
+  --model "${CODEX_MODEL:-qwen3-coder-30b-a3b-instruct}" \
+  --host "${CODEX_HOST:-http://localhost:1234}"
 ```
 
-Альтернатива (если CLI читает спеку через stdin):
+PowerShell (dev-машина — Windows):
 
-```bash
-codex --oss --model <agreed-model> < .ai/handoffs/PTR-XXX-<slug>.md
+```powershell
+$model     = if ($env:CODEX_MODEL) { $env:CODEX_MODEL } else { "qwen3-coder-30b-a3b-instruct" }
+$codexHost = if ($env:CODEX_HOST)  { $env:CODEX_HOST }  else { "http://localhost:1234" }
+codex --oss --model $model --host $codexHost
 ```
+
+### Подача handoff'а
+
+Способ передачи файла `.ai/handoffs/PTR-XXX-<slug>.md` в Codex CLI (`--instructions <file>`, stdin-redirect или иной механизм) **на момент написания не зафиксирован** — выбирается на первой реальной делегации, по факту выясняется флагом `codex --help` для текущей версии CLI. После того как способ выбран — обновить этот раздел и `invoke-codex` skill (отдельный, маленький PR; ADR не требуется).
+
+### Troubleshooting
+
+| Симптом | Причина | Что делать |
+|---|---|---|
+| `connection refused` / `ECONNREFUSED` на `localhost:1234` | LM Studio не запущен или Local Server выключен | Запустить LM Studio, включить Local Server |
+| `model not found` / 404 от endpoint'а | Модель скачана, но не загружена в память | В LM Studio открыть модель и нажать **Load** |
+| `timeout` на длинных промптах | Контекстное окно или таймаут CLI исчерпан | Сократить handoff, либо разбить задачу |
+| Хочется временно переключиться на другой хост (Ollama, удалённый сервер) | — | `CODEX_HOST=http://...` перед командой; постоянная смена → новый ADR, заменяющий ADR-0005 |
 
 После завершения Cursor:
 
