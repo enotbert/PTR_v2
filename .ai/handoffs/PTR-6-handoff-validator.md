@@ -162,4 +162,45 @@ shellcheck scripts/validate-handoff.sh scripts/tests/test-validate-handoff.sh
 
 ## Result
 
-<!-- Заполняется Cursor'ом после Codex run'а на основании stdout/stderr/exit-code Codex'а и независимой валидации. -->
+**Status:** Delivered by Cursor (manual fallback). Codex CLI delegation was attempted and aborted; deliverable was implemented by Cursor strictly per this handoff.
+
+### Codex CLI delegation outcome
+
+Pipeline exercised end-to-end up to invocation. Codex CLI invocation failed at the LM Studio API layer with `invalid_request_error: tools.<N>.type invalid_string` — a known compatibility gap between codex-cli 0.128 and LM Studio 0.4.x (see [lmstudio-bug-tracker#1812](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1812)). Profile-based workarounds (per-profile feature/plugin/MCP disable) reduced the rejected tool index from 14 → 7 but could not eliminate it; the remaining 8 tools are Codex-CLI hard built-ins and cannot be disabled via configuration. Model swap (qwen3-coder-30b-a3b-instruct → gemma-4-26b-a4b-it) had no effect — the rejection happens at LM Studio's request validator, before model invocation.
+
+### Decision
+
+Project pivots away from Codex CLI as the coder runtime. A custom Python adapter that talks directly to LM Studio's OpenAI-compatible API will replace it. ADR-0005 is to be superseded by a forthcoming ADR-0006; `.cursor/skills/invoke-codex/`, `.ai/rules/70-orchestration-codex-cli.md`, and related Codex-CLI references will be deprecated/rewritten in a separate PR series. The handoff format itself remains the orchestration contract — the validator stays useful regardless of who consumes the handoffs.
+
+### Files delivered (matches `## Files in scope`)
+
+- `scripts/validate-handoff.sh`
+- `scripts/tests/test-validate-handoff.sh`
+- `scripts/tests/fixtures/valid-handoff.md`
+- `scripts/tests/fixtures/missing-section.md`
+- `scripts/tests/fixtures/whitespace-headers.md`
+- `scripts/tests/fixtures/empty.md`
+
+Plus orchestrator additions outside the original scope (Cursor's responsibility, not Codex's):
+
+- `.gitattributes` — needed because the validator must be CRLF-tolerant in source AND on disk, and to keep `.sh`/`.yml`/`.toml` LF-only for cross-platform CI.
+- `.github/workflows/ci.yml` — added `Shellcheck`, `Handoff validator tests`, `Validate all handoffs` steps under the existing umbrella `ci` job.
+
+### Test plan execution
+
+- `bash scripts/tests/test-validate-handoff.sh` → `RESULT: 6/6 passed` (exit 0).
+- `bash scripts/validate-handoff.sh .ai/handoffs/PTR-6-handoff-validator.md` → `OK: all required sections present in .ai/handoffs/PTR-6-handoff-validator.md` (exit 0).
+- `shellcheck` not run locally (not installed on workstation); GitHub Actions Ubuntu runner has it pre-installed and runs it via the new CI step.
+
+### Out-of-scope issues noticed
+
+- `.ai/rules/65-personas.md` brief templates begin with `## Persona: <name>` while `.ai/rules/70-orchestration-codex-cli.md` defines the section header strictly as `## Persona`. This handoff used the strict form to remain validator-compatible; the persona rule template inconsistency should be reconciled in a separate small docs PR.
+- ADR-0005's canonical command (`--host http://localhost:1234`) does not match real `codex --help` (no `--host` flag; the canonical is `codex exec --oss --local-provider lmstudio` or via profile). Moot now that we are pivoting away from Codex CLI, but worth noting for ADR-0006.
+- LM Studio API returns `data` instead of `models` in `/v1/models`, causing a benign `failed to refresh available models` warning in Codex CLI logs. Not blocking.
+
+### Follow-ups (separate Linear tickets)
+
+1. ADR-0006: custom Python adapter for LM Studio (supersedes ADR-0005).
+2. Rebrand and rewrite `.ai/rules/70-orchestration-codex-cli.md` and `.cursor/skills/invoke-codex/` for the new adapter.
+3. Externalize model identifier (`CODEX_MODEL` / new env-var name TBD) into `.env.example` + a wrapper, so the user can swap models without committing changes.
+4. Reconcile `## Persona` header convention between `65-personas.md` brief templates and `70-orchestration-codex-cli.md` handoff template.
