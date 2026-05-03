@@ -2,7 +2,7 @@
 
 > Этот файл — **точка входа** и **манифест** для всех AI-ассистентов, работающих в этом репозитории.
 > Перед началом любой задачи ассистент обязан прочитать этот файл и все правила, на которые он ссылается, релевантные для задачи.
-> Поддерживаемые ассистенты: Cursor, Codex CLI (`--oss` и cloud), Claude Code, GitHub Copilot и любые другие, читающие `AGENTS.md`.
+> Поддерживаемые ассистенты: Cursor, **ptr_coder** (локальный адаптер к LM Studio), Codex CLI cloud (только генерация изображений, если используется), Claude Code, GitHub Copilot и любые другие, читающие `AGENTS.md`.
 
 ---
 
@@ -30,12 +30,12 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 
 | Роль | Инструмент | Ответственность |
 |---|---|---|
-| Оркестратор / архитектор / валидатор | **Cursor** | Декомпозиция задач, проектирование, написание ADR и спецификаций, делегирование Codex CLI, валидация результатов, оформление PR |
-| Кодер | **Codex CLI `--oss`** | Реализация кода по спецификации от Cursor, локальный прогон тестов и линтеров |
+| Оркестратор / архитектор / валидатор | **Cursor** | Декомпозиция задач, проектирование, написание ADR и спецификаций, делегирование **ptr_coder**, валидация результатов, оформление PR |
+| Кодер | **ptr_coder** (`packages/ptr_coder/`) | Реализация кода по handoff от Cursor через LM Studio (OpenAI API); локальный прогон тестов/линтов по командам из handoff |
 | Генератор изображений | **Codex CLI cloud** | Генерация графических ассетов |
 | Финальный ревьюер | **Человек (`@enotbert`)** | Code review и merge PR |
 
-Подробности взаимодействия — в [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) и [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md).
+Подробности взаимодействия — в [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) и [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md).
 
 ## 4. Минимальный цикл работы агента
 
@@ -64,9 +64,9 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 | [`.ai/rules/30-commits-and-prs.md`](.ai/rules/30-commits-and-prs.md) | Conventional Commits, формат PR, размер PR |
 | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) | Линт, формат, типы, тесты, Playwright для UI, Definition of Done |
 | [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md) | Linear как единственный источник истины, статусы, создание задач |
-| [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) | Кто что делает: Cursor, Codex CLI, человек |
+| [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) | Кто что делает: Cursor, ptr_coder, человек |
 | [`.ai/rules/65-personas.md`](.ai/rules/65-personas.md) | Персоны делегирования (backend / frontend / qa / infra / docs) и шаблоны брифов |
-| [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) | Как Cursor вызывает Codex CLI как subprocess |
+| [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md) | Как Cursor вызывает ptr_coder (LM Studio) по handoff |
 | [`.ai/rules/80-security-and-secrets.md`](.ai/rules/80-security-and-secrets.md) | Политика секретов, `.env`, доступ агентов к чувствительным данным |
 | [`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md) | Чёрный список действий, всегда требующих явного разрешения человека |
 
@@ -76,7 +76,8 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 
 | Скил | О чём |
 |---|---|
-| [`.cursor/skills/invoke-codex/SKILL.md`](.cursor/skills/invoke-codex/SKILL.md) | Один цикл вызова Codex CLI как subprocess по существующему хэндоффу: pre-flight → запуск → захват результата → независимая валидация → решение об итерации |
+| [`.cursor/skills/invoke-ptr-coder/SKILL.md`](.cursor/skills/invoke-ptr-coder/SKILL.md) | Один цикл вызова ptr_coder по handoff: pre-flight → `python -m ptr_coder` → захват результата → независимая валидация → решение об итерации |
+| [`.cursor/skills/invoke-codex/SKILL.md`](.cursor/skills/invoke-codex/SKILL.md) | **Deprecated** — редирект на `invoke-ptr-coder` (Codex CLI `--oss` снят с роли кодера) |
 | [`.cursor/skills/linear-flow/SKILL.md`](.cursor/skills/linear-flow/SKILL.md) | Жизненный цикл задачи в Linear (PTR): pickup, статус-переходы, комментарии, follow-up задачи, обработка неоднозначности |
 
 **Правила добавления скилов:**
@@ -139,7 +140,7 @@ PR может быть смерджен **только если**:
 
 Мелкие операционные детали, которые разрешатся по факту первой реальной работы (не требуют ADR):
 
-- **Способ вызова Python-адаптера** (CLI-флаги, stdin, путь к handoff) — зафиксируем в [ADR-0006](docs/adr/0006-python-lmstudio-coder-adapter.md) follow-up и в [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) после реализации пакета `packages/ptr_coder/`.
+- **Расширение ptr_coder** (новые tools, политики песочницы) — по мере необходимости через ADR / правки [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md).
 
 ### Принятые решения (для справки)
 
@@ -150,7 +151,7 @@ PR может быть смерджен **только если**:
 | Лицензия | Proprietary / All Rights Reserved, явный `LICENSE` | [ADR-0003](docs/adr/0003-license-proprietary.md), [`LICENSE`](LICENSE) |
 | Status checks в branch protection | Один зонтичный `ci`; разбиение появится с первым реальным стеком | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Approving review на PR | Не enforced branch protection (`required_approving_review_count: 0`); merge — обязательно человеком, agent self-merge запрещён правилом | [ADR-0004](docs/adr/0004-relax-required-review.md), [`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md) |
-| Исполнитель кодинга (local) | Python-адаптер `ptr_coder` → LM Studio OpenAI API; env `PTR_CODER_BASE_URL` / `PTR_CODER_MODEL` (дефолты в ADR-0006). Codex CLI снят с роли coder ([ADR-0006](docs/adr/0006-python-lmstudio-coder-adapter.md) supersede [ADR-0005](docs/adr/0005-codex-cli-local-runtime.md)) | [ADR-0006](docs/adr/0006-python-lmstudio-coder-adapter.md), [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) (обновление — follow-up) |
+| Исполнитель кодинга (local) | Python-адаптер `ptr_coder` → LM Studio OpenAI API; env `PTR_CODER_BASE_URL` / `PTR_CODER_MODEL` (дефолты в ADR-0006). Codex CLI снят с роли coder ([ADR-0006](docs/adr/0006-python-lmstudio-coder-adapter.md) supersede [ADR-0005](docs/adr/0005-codex-cli-local-runtime.md)) | [ADR-0006](docs/adr/0006-python-lmstudio-coder-adapter.md), [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md) |
 | Локальные git-хуки | Husky+lint-staged+commitlint отложены до первого JS/TS пакета в монорепе | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) |
 
 ## 10. Как обновлять эти правила

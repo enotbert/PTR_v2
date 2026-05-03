@@ -1,6 +1,6 @@
 # ptr_coder
 
-Python adapter that runs a **minimal function-tool agent loop** against an OpenAI-compatible chat endpoint (for example **LM Studio** local server). It replaces Codex CLI as the repo coding executor; see [ADR-0006](../../docs/adr/0006-python-lmstudio-coder-adapter.md).
+Python adapter that runs a **minimal function-tool agent loop** against an OpenAI-compatible chat endpoint (for example **LM Studio** local server). It replaces Codex CLI as the repo coding executor; see [ADR-0006](../../docs/adr/0006-python-lmstudio-coder-adapter.md). Orchestration protocol for Cursor: [`.ai/rules/70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md).
 
 ## Requirements
 

@@ -3,11 +3,11 @@
 - **Статус:** Accepted
 - **Дата:** 2026-05-03
 - **Авторы:** @enotbert
-- **Связано с:** [ADR-0005](0005-codex-cli-local-runtime.md) (supersedes), [PTR-6](https://linear.app/ptr-game/issue/PTR-6/), [PTR-7](https://linear.app/ptr-game/issue/PTR-7/) (реализация кода), [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md), [`.ai/rules/70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md) (будет переписан под новый адаптер)
+- **Связано с:** [ADR-0005](0005-codex-cli-local-runtime.md) (supersedes), [PTR-6](https://linear.app/ptr-game/issue/PTR-6/), [PTR-7](https://linear.app/ptr-game/issue/PTR-7/) (реализация кода), [`AGENTS.md`](../../AGENTS.md), [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md), [`.ai/rules/70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md)
 
 ## Контекст
 
-В [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md) зафиксировано: **Cursor** — оркестратор, **Codex CLI `--oss`** — исполнитель кодинговых задач по handoff'у. [ADR-0005](0005-codex-cli-local-runtime.md) закрепил транспорт: **LM Studio** на `localhost:1234`, модель по умолчанию через `CODEX_HOST` / `CODEX_MODEL`.
+Исторически в [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md) исполнителем кодинга был **Codex CLI `--oss`**; [ADR-0005](0005-codex-cli-local-runtime.md) закреплял транспорт **LM Studio** и env `CODEX_*`. Текущий исполнитель — **ptr_coder** с контрактом `PTR_CODER_*` (этот ADR).
 
 Первая реальная попытка делегирования ([PTR-6](https://linear.app/ptr-game/issue/PTR-6/)) показала блокер: **Codex CLI 0.128** при работе через LM Studio отправляет в API массив `tools`, часть которых имеет типы/схемы, которые **LM Studio local server** отвергает на этапе валидации запроса (`invalid_request_error`, `param: tools.<N>.type`, `code: invalid_string`). Это **известная несовместимость** (см. [lmstudio-bug-tracker#1812](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/1812)); частичные workarounds (отключение MCP, плагинов, фич в профиле) **не устраняют** проблему полностью — остаётся набор «жёстких» встроенных tools Codex CLI, которые нельзя отключить конфигурацией. Смена модели не помогает: отказ происходит **до** вызова модели.
 
@@ -88,11 +88,11 @@
 ### Что нужно сделать (follow-up, вне этого ADR-текста)
 
 - [x] Реализовать пакет `packages/ptr_coder/` (зависимости, тесты; lockfile не вводим на первом шаге).
-- [ ] Переписать [`.ai/rules/70-orchestration-codex-cli.md`](../../.ai/rules/70-orchestration-codex-cli.md) под вызов Python-адаптера (возможно переименование файла — отдельное обсуждение).
-- [ ] Обновить / переименовать [`.cursor/skills/invoke-codex/SKILL.md`](../../.cursor/skills/invoke-codex/SKILL.md) → процесс `invoke-coder` (или аналог).
-- [ ] Обновить [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md): убрать Codex CLI как coder, описать адаптер.
+- [x] Переписать оркестрацию под ptr_coder: [`.ai/rules/70-orchestration-ptr-coder.md`](../../.ai/rules/70-orchestration-ptr-coder.md) (файл `70-orchestration-codex-cli.md` удалён).
+- [x] Обновить скилы: [`.cursor/skills/invoke-ptr-coder/SKILL.md`](../../.cursor/skills/invoke-ptr-coder/SKILL.md); `invoke-codex` помечен deprecated.
+- [x] Обновить [`.ai/rules/60-agent-roles.md`](../../.ai/rules/60-agent-roles.md): роль кодера — ptr_coder.
 - [x] Добавить `.env.example` корневые ключи `PTR_CODER_BASE_URL` / `PTR_CODER_MODEL` (без секретов).
-- [ ] Обновить `AGENTS.md` §6 таблицу ADR и §9 «Принятые решения» (строка про Codex CLI → адаптер).
+- [x] Обновить `AGENTS.md` (§3 роли, индекс правил §5, скилы §5a, §9) под ptr_coder и новый скил.
 
 ## Ссылки
 

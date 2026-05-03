@@ -2,7 +2,7 @@
 #
 # validate-handoff.sh — verify that a handoff markdown file contains
 # all nine required section headers per
-# .ai/rules/70-orchestration-codex-cli.md (or its successor rule file).
+# .ai/rules/70-orchestration-ptr-coder.md (nine canonical section headers).
 #
 # Spec: .ai/handoffs/PTR-6-handoff-validator.md
 #
