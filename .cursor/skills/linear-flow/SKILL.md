@@ -84,6 +84,8 @@ Args: {
 
 ## Workflow: open a PR (transition to In Review)
 
+**1:1:** один открытый PR закрывает **ровно один** Linear-issue (`Closes PTR-XXX` в теле PR; см. [`.ai/rules/50-task-management.md`](../../../.ai/rules/50-task-management.md)). Не прикреплять один PR к нескольким задачам как к равноправным «Closes».
+
 After `gh pr create` returns a PR URL:
 
 ```
