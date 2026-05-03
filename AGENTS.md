@@ -100,6 +100,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 | [0002](docs/adr/0002-use-release-please-for-versioning.md) | Использовать release-please для CHANGELOG и версионирования | Accepted |
 | [0003](docs/adr/0003-license-proprietary.md) | Использовать проприетарную лицензию (All Rights Reserved) | Accepted |
 | [0004](docs/adr/0004-relax-required-review.md) | Снять обязательный approving review в branch protection (solo-dev) | Accepted |
+| [0005](docs/adr/0005-codex-cli-local-runtime.md) | Codex CLI runtime: LM Studio @ localhost + Qwen3-Coder | Accepted |
 
 ## 7. Definition of Done (краткая версия)
 
@@ -133,9 +134,11 @@ PR может быть смерджен **только если**:
 
 ## 9. Открытые вопросы
 
-Все основные процессные решения зафиксированы — либо в ADR (см. [§6](#6-архитектурные-решения-adr)), либо в самих правилах `.ai/rules/`. Открытым на данный момент остаётся:
+На данный момент **процессных открытых вопросов нет** — все основные решения зафиксированы либо в ADR (см. [§6](#6-архитектурные-решения-adr)), либо в правилах `.ai/rules/`. Любой новый вопрос фиксируется здесь и закрывается через ADR / правки в `.ai/rules/`.
 
-- **Конкретный шаблон вызова Codex CLI:** placeholder в [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) — будет заменён фактическим набором флагов и моделью при первой задаче делегирования.
+Мелкие операционные детали, которые разрешатся по факту первой реальной работы (не требуют ADR):
+
+- **Способ подачи handoff'а в Codex CLI** (`--instructions <file>` vs stdin vs иное) — определится на первой делегации; обновим [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) и `invoke-codex` skill маленьким docs-PR.
 
 ### Принятые решения (для справки)
 
@@ -145,6 +148,8 @@ PR может быть смерджен **только если**:
 | CHANGELOG и релизы | release-please (manifest mode, `release-type: simple` на корне, расширяется по пакетам) | [ADR-0002](docs/adr/0002-use-release-please-for-versioning.md) |
 | Лицензия | Proprietary / All Rights Reserved, явный `LICENSE` | [ADR-0003](docs/adr/0003-license-proprietary.md), [`LICENSE`](LICENSE) |
 | Status checks в branch protection | Один зонтичный `ci`; разбиение появится с первым реальным стеком | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Approving review на PR | Не enforced branch protection (`required_approving_review_count: 0`); merge — обязательно человеком, agent self-merge запрещён правилом | [ADR-0004](docs/adr/0004-relax-required-review.md), [`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md) |
+| Codex CLI runtime / модель | LM Studio @ `localhost:1234`, `qwen3-coder-30b-a3b-instruct`, env-контракт `CODEX_HOST` / `CODEX_MODEL` с дефолтами | [ADR-0005](docs/adr/0005-codex-cli-local-runtime.md), [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) |
 | Локальные git-хуки | Husky+lint-staged+commitlint отложены до первого JS/TS пакета в монорепе | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) |
 
 ## 10. Как обновлять эти правила

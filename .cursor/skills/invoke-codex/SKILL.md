@@ -24,8 +24,9 @@ Before running anything, verify:
 - [ ] Handoff file exists at `.ai/handoffs/PTR-XXX-<slug>.md`
 - [ ] Handoff has a `## Persona` section naming a known persona from `.ai/rules/65-personas.md`
 - [ ] Handoff has a `## Commands` section with at least Lint / Test commands
+- [ ] **Codex CLI runtime is up.** Per [ADR-0005](../../../docs/adr/0005-codex-cli-local-runtime.md): LM Studio is running, Local Server is on, the model from `CODEX_MODEL` (default `qwen3-coder-30b-a3b-instruct`) is **loaded in memory**, and `curl <CODEX_HOST>/v1/models` (default host `http://localhost:1234`) returns 200 with the model in the list.
 
-If any check fails — stop and ask the user.
+If any check fails — stop and ask the user. For the runtime check, surface the specific failure (LM Studio down vs model not loaded vs different model loaded) so the user can fix it in one step.
 
 ## Workflow
 
@@ -58,15 +59,44 @@ If sections are missing — stop, ask user to complete the handoff or fix it inl
 
 ### Step 2: Build invocation
 
-> **Status:** invocation template is currently a **placeholder**. The exact CLI flags and model are pending user input (open question in [`AGENTS.md` §9](../../../AGENTS.md#9-открытые-вопросы)). Use the template below until updated by ADR.
+Runtime, model and host are fixed in [ADR-0005](../../../docs/adr/0005-codex-cli-local-runtime.md): LM Studio @ `http://localhost:1234`, model `qwen3-coder-30b-a3b-instruct`, both overridable via env vars `CODEX_HOST` and `CODEX_MODEL`. Full canonical command and prerequisites are in [`.ai/rules/70-orchestration-codex-cli.md`](../../../.ai/rules/70-orchestration-codex-cli.md).
 
-Default placeholder template:
+#### Canonical command
+
+POSIX shell:
 
 ```bash
-codex --oss --workdir . --instructions .ai/handoffs/PTR-XXX-<slug>.md --non-interactive
+codex --oss \
+  --model "${CODEX_MODEL:-qwen3-coder-30b-a3b-instruct}" \
+  --host "${CODEX_HOST:-http://localhost:1234}"
 ```
 
-Substitute `PTR-XXX-<slug>` from the actual handoff filename. Adjust flags/model only after the user updates `.ai/rules/70-orchestration-codex-cli.md` and a corresponding ADR is opened.
+PowerShell (Windows dev box):
+
+```powershell
+$model     = if ($env:CODEX_MODEL) { $env:CODEX_MODEL } else { "qwen3-coder-30b-a3b-instruct" }
+$codexHost = if ($env:CODEX_HOST)  { $env:CODEX_HOST }  else { "http://localhost:1234" }
+codex --oss --model $model --host $codexHost
+```
+
+#### Handoff delivery
+
+The exact flag for handing the spec file to Codex CLI (`--instructions <file>`, stdin redirect, or other) is **not yet pinned** — it depends on the installed Codex CLI version and will be locked in on the **first real delegation**. Until then:
+
+1. Run `codex --help` once to discover the supported handoff flag for the current version.
+2. Append the chosen flag to the canonical command. Examples (pick whichever the CLI actually supports):
+
+   ```bash
+   # If --instructions is supported:
+   codex --oss --model "..." --host "..." --instructions .ai/handoffs/PTR-XXX-<slug>.md
+
+   # If stdin is the supported mechanism:
+   codex --oss --model "..." --host "..." < .ai/handoffs/PTR-XXX-<slug>.md
+   ```
+
+3. After the first successful run, update both [`.ai/rules/70-orchestration-codex-cli.md`](../../../.ai/rules/70-orchestration-codex-cli.md) and this skill with the confirmed flag (small docs PR, no ADR required — this is operational detail).
+
+Substitute `PTR-XXX-<slug>` from the actual handoff filename.
 
 ### Step 3: Run Codex CLI
 
