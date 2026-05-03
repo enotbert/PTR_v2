@@ -75,6 +75,12 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 - Шаблон: [`docs/adr/template.md`](docs/adr/template.md)
 - Индекс ADR: [`docs/adr/README.md`](docs/adr/README.md)
 
+| № | Заголовок | Статус |
+|---|---|---|
+| [0001](docs/adr/0001-record-architecture-decisions.md) | Использовать MADR для записи архитектурных решений | Accepted |
+| [0002](docs/adr/0002-use-release-please-for-versioning.md) | Использовать release-please для CHANGELOG и версионирования | Accepted |
+| [0003](docs/adr/0003-license-proprietary.md) | Использовать проприетарную лицензию (All Rights Reserved) | Accepted |
+
 ## 7. Definition of Done (краткая версия)
 
 PR может быть смерджен **только если**:
@@ -105,16 +111,21 @@ PR может быть смерджен **только если**:
 - Деструктивные shell-команды за пределами рабочего дерева репозитория
 - Обход CI-гейтов (`--no-verify`, force-merge)
 
-## 9. Открытые вопросы (требуют решения)
+## 9. Открытые вопросы
 
-Следующие политики приняты как разумные **дефолты**, но ждут явного подтверждения и могут быть изменены:
+Все основные процессные решения зафиксированы — либо в ADR (см. [§6](#6-архитектурные-решения-adr)), либо в самих правилах `.ai/rules/`. Открытым на данный момент остаётся:
 
-- **Секреты:** в репо только `.env.example`; реальные `.env` запрещены; `gitleaks`/`secretlint` добавляем в CI, когда стек прояснится
-- **CHANGELOG / стратегия релизов:** не настроена; ввести при появлении публикуемых артефактов (кандидаты: `release-please`, `changesets`, ручной Keep a Changelog)
-- **License:** не выбрана; до выбора репозиторий считается *All rights reserved*
-- **Обязательные status checks в branch protection:** сейчас один зонтичный check `CI`; разбить на `lint` / `typecheck` / `test` / `build` / `e2e` по мере роста
-- **Husky + lint-staged + commitlint:** политика принята, конфигурация будет добавлена вместе с первым `package.json` в корне (отдельным PR)
-- **Конкретный шаблон вызова Codex CLI:** placeholder в [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) — уточнить актуальные флаги и модель
+- **Конкретный шаблон вызова Codex CLI:** placeholder в [`.ai/rules/70-orchestration-codex-cli.md`](.ai/rules/70-orchestration-codex-cli.md) — будет заменён фактическим набором флагов и моделью при первой задаче делегирования.
+
+### Принятые решения (для справки)
+
+| Тема | Решение | Где зафиксировано |
+|---|---|---|
+| Секреты в репо | Только `.env.example`; полагаемся на GitHub Secret Scanning + Push Protection; `gitleaks` отложен до появления внешних интеграций | [`.ai/rules/80-security-and-secrets.md`](.ai/rules/80-security-and-secrets.md) |
+| CHANGELOG и релизы | release-please (manifest mode, `release-type: simple` на корне, расширяется по пакетам) | [ADR-0002](docs/adr/0002-use-release-please-for-versioning.md) |
+| Лицензия | Proprietary / All Rights Reserved, явный `LICENSE` | [ADR-0003](docs/adr/0003-license-proprietary.md), [`LICENSE`](LICENSE) |
+| Status checks в branch protection | Один зонтичный `ci`; разбиение появится с первым реальным стеком | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Локальные git-хуки | Husky+lint-staged+commitlint отложены до первого JS/TS пакета в монорепе | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) |
 
 ## 10. Как обновлять эти правила
 
