@@ -65,7 +65,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 | [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md) | Линт, формат, типы, тесты, Playwright для UI, Definition of Done |
 | [`.ai/rules/50-task-management.md`](.ai/rules/50-task-management.md) | Linear как единственный источник истины, статусы, создание задач, **один issue = один PR** |
 | [`.ai/rules/60-agent-roles.md`](.ai/rules/60-agent-roles.md) | Кто что делает: Cursor, ptr_coder, человек |
-| [`.ai/rules/65-personas.md`](.ai/rules/65-personas.md) | Персоны делегирования (backend / frontend / qa / infra / docs) и шаблоны брифов |
+| [`.ai/rules/65-personas.md`](.ai/rules/65-personas.md) | Персоны делегирования (backend / frontend / designer / qa / infra / docs) и шаблоны брифов |
 | [`.ai/rules/70-orchestration-ptr-coder.md`](.ai/rules/70-orchestration-ptr-coder.md) | Как Cursor вызывает ptr_coder (LM Studio) по handoff |
 | [`.ai/rules/80-security-and-secrets.md`](.ai/rules/80-security-and-secrets.md) | Политика секретов, `.env`, доступ агентов к чувствительным данным |
 | [`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md) | Чёрный список действий, всегда требующих явного разрешения человека |
