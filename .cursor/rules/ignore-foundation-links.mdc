@@ -1,0 +1,11 @@
+---
+description: Ignore obsolete foundation markdown references
+alwaysApply: true
+---
+
+# Obsolete Foundation References
+
+- Treat any references to `foundation/*.md` or `docs/foundation/*.md` as obsolete.
+- Do not use those paths as a source of requirements, architecture, or acceptance criteria.
+- Prefer current sources in Linear, `docs/adr/`, `docs/product/`, `docs/tech/`, and explicit human comments.
+- If an issue depends only on a missing `foundation/*.md` document, ask for clarification instead of inventing requirements.
