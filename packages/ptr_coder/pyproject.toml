@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ptr-coder"
+version = "0.1.0"
+description = "PTR monorepo local coding agent against LM Studio (OpenAI-compatible API)."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "openai>=1.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+ptr-coder = "ptr_coder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ptr_coder*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
