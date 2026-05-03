@@ -99,6 +99,7 @@ PTR v2 — мультиязыковая монорепа, спроектиров
 | [0001](docs/adr/0001-record-architecture-decisions.md) | Использовать MADR для записи архитектурных решений | Accepted |
 | [0002](docs/adr/0002-use-release-please-for-versioning.md) | Использовать release-please для CHANGELOG и версионирования | Accepted |
 | [0003](docs/adr/0003-license-proprietary.md) | Использовать проприетарную лицензию (All Rights Reserved) | Accepted |
+| [0004](docs/adr/0004-relax-required-review.md) | Снять обязательный approving review в branch protection (solo-dev) | Accepted |
 
 ## 7. Definition of Done (краткая версия)
 
@@ -111,7 +112,7 @@ PR может быть смерджен **только если**:
 - [ ] **Для PR, затрагивающих UI — добавлен/обновлён Playwright (или эквивалент) тест, подтверждающий поведение в браузере**
 - [ ] CI зелёный
 - [ ] Документация обновлена при необходимости (README, ADR, `.ai/rules/`)
-- [ ] Получен **review от человека** (`@enotbert`)
+- [ ] PR смерджен **человеком** (`@enotbert`); approving review **рекомендован** для нетривиальных PR (`feat`, `fix`, `infra`), но не enforced branch protection — см. [ADR-0004](docs/adr/0004-relax-required-review.md). Агент **никогда не мерджит свой PR** ([`.ai/rules/90-forbidden.md`](.ai/rules/90-forbidden.md)).
 
 Развёрнутая версия — в [`.ai/rules/40-code-quality.md`](.ai/rules/40-code-quality.md).
 

@@ -129,12 +129,14 @@ chore(repo): release <version>
 
 ### Что делает агент vs человек
 
+> **Важно:** approving review **не требуется** branch protection (см. [ADR-0004](../../docs/adr/0004-relax-required-review.md)) — он рекомендован, но не блокирует merge. **Merge всё равно делает человек** — это процедурное правило агента, не зависящее от настроек protection.
+
 | Действие | Агент | Человек |
 |---|---|---|
 | Открыть PR | ✅ | — |
 | Обновлять PR (push в feature) | ✅ | — |
 | Отвечать на комментарии | ✅ | ✅ |
 | Менять статус Draft ↔ Ready | ✅ | ✅ |
-| Approve / Request changes | ❌ | ✅ |
-| Merge | ❌ | ✅ |
+| Approve / Request changes | ❌ | ✅ (опционально) |
+| Merge | ❌ (запрещено правилом) | ✅ |
 | Закрыть PR без merge | ⚠️ только с явного запроса | ✅ |
