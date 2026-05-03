@@ -9,6 +9,7 @@
 |---|---|
 | [PRD_v1_public_early_access.md](PRD_v1_public_early_access.md) | Требования к публичной v1 / early access: цели, user flows, функциональные и нефункциональные требования, release gates. |
 | [LORE_v0.1.md](LORE_v0.1.md) | Базовый сеттинг, тон, архетипы ролей и визуальные опоры для UI-текста и prototype assets. |
+| [enemy_roster_v1.md](enemy_roster_v1.md) | Минимальный набор PvE-врагов и мини-босса v1, синергии врагов, wave patterns и boss encounter grammar. |
 
 ## Правило обновления
 
