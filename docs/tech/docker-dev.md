@@ -67,6 +67,12 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 
 Сервисы разделяют **дефолтную сеть Compose**. Backend получает строку **`DATABASE_URL`** (см. `docker-compose.yml`) с хостом `postgres` и портом `5432` внутри сети. Менять хост при локальном compose не требуется.
 
+## Миграции БД (Alembic)
+
+Политика репозитория: **файлы Alembic и baseline** добавляются только после **explicit human approval** (задача PTR-20, [`.ai/rules/90-forbidden.md`](../../.ai/rules/90-forbidden.md)).
+
+Целевые команды для применения миграций на **чистую** локальную БД через Compose и запуск backend на хосте с `DATABASE_URL` — в отдельном документе **[db-migrations.md](db-migrations.md)**.
+
 ## Frontend (Vite dev)
 
 Сервис **`frontend`** собирается из `apps/frontend/` (**pnpm** + Vite 6 + React + TypeScript). Внутри контейнера dev server слушает **`0.0.0.0:5173`**; на хост публикуется `FRONTEND_PUBLISH_PORT` → `5173`.
