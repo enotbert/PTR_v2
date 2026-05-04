@@ -1,10 +1,16 @@
 # Docker Compose — локальный dev stack
 
+## Docker-first workflow
+
+Локальный dev **не требует** установки на хост **Node.js**, **Python**, **pnpm**, **uv** или **Postgres** — только **Docker** (и Git для клонирования репозитория). Все команды ниже, которые относятся к сервисам репозитория, рассчитаны на **один и тот же** env-файл: `docker compose --env-file .env.development <команда>`.
+
+Короткий вход с проверками — в [корневом README](../../README.md). Индекс прочих техдоков без дублирования архитектуры — [README в этом каталоге](README.md) (например [db-migrations.md](db-migrations.md) для Alembic).
+
 ## Строгая проверка в Docker
 
 Для агентов и разработчиков: изменения сервисов из этого Compose **обязаны** подтверждаться прогоном через Docker (сборка образа + smoke по сервису), а не только хостовыми `pnpm`/`uv`. Политика зафиксирована в [`.ai/rules/40-code-quality.md`](../../.ai/rules/40-code-quality.md) («Строгая проверка в Docker»).
 
-**Файл `.env.development`:** не коммитится; шаблон — [`.env.development.example`](../../.env.development.example). Если файла нет — скопируй пример: `cp .env.development.example .env.development` (Windows: аналог). Затем проверь валидность: `docker compose --env-file .env.development config` (должен завершиться с кодом 0).
+**Файл `.env.development`:** не коммитится; шаблон — [`.env.development.example`](../../.env.development.example). Если файла нет — скопируй пример: `cp .env.development.example .env.development` (Windows: `Copy-Item .env.development.example .env.development`). Затем проверь валидность: `docker compose --env-file .env.development config` (должен завершиться с кодом 0). Секреты и что нельзя класть в git — в [`.ai/rules/80-security-and-secrets.md`](../../.ai/rules/80-security-and-secrets.md); оглавление env-шаблонов — [`.env.example`](../../.env.example).
 
 ---
 
@@ -41,21 +47,32 @@ docker compose --env-file .env.development up --build
 
 4. Проверка backend и Postgres: открой `http://localhost:18080/health` (порт см. `BACKEND_PUBLISH_PORT`, по умолчанию **18080**). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.
 
-5. Проверка frontend: открой `http://localhost:15173` (порт см. `FRONTEND_PUBLISH_PORT`, по умолчанию **15173**). Должна открыться страница Vite с заголовком приложения.
+5. Проверка OpenAPI: интерактивно **Swagger UI** — `http://localhost:18080/docs` (тот же хост-порт, что и у backend). Сырая схема: `http://localhost:18080/openapi.json`. Пример с `curl` (замени порт при отличии от дефолта):
+
+```bash
+curl -fsS "http://localhost:18080/openapi.json" | head -c 200
+```
+
+6. Проверка frontend: открой `http://localhost:15173` (порт см. `FRONTEND_PUBLISH_PORT`, по умолчанию **15173**). Должна открыться страница Vite с заголовком приложения.
+
+## Качество кода через Docker (тесты / typecheck)
+
+Предпочтительный путь для агентов и «чистой» машины — **только контейнеры** (тот же `.env.development`).
+
+| Задача | Команда из корня репозитория |
+|--------|------------------------------|
+| Backend: pytest | `docker compose --env-file .env.development run --rm --no-deps backend uv run pytest -q` |
+| Frontend: TypeScript (`tsc --noEmit`) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run typecheck` |
+
+Отдельные **ESLint / Prettier (frontend)** и **Ruff / Black (backend)** в минимальном скелете не подключены: при появлении скриптов в `package.json` / `pyproject.toml` их следует вызывать так же через `docker compose run --rm --no-deps <сервис> …`.
+
+**Опционально на хосте** (например, в CI или у разработчика с локальным `uv` / `pnpm`): зайти в `apps/backend` и выполнить `uv sync --frozen --group dev && uv run pytest -q`, в `apps/frontend` — `pnpm run typecheck`. Для согласованности с образами используй те же lockfile’ы (`uv.lock`, `pnpm-lock.yaml`).
 
 ## Pytest (backend smoke)
 
 Образ `backend` собирается с **uv** и lockfile (`apps/backend/uv.lock`); dev-группа установлена в образе, чтобы можно было гонять тесты без отдельного Dockerfile.
 
-Локально (из корня репозитория):
-
-```bash
-cd apps/backend
-uv sync --frozen --group dev
-uv run pytest -q
-```
-
-Внутри Compose после `docker compose ... build` (тот же `--env-file`, что и для `up`):
+Предпочтительно через Compose (см. таблицу выше):
 
 ```bash
 docker compose --env-file .env.development run --rm --no-deps backend uv run pytest -q
@@ -87,13 +104,7 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 
 Для HMR исходники монтируются как `./apps/frontend:/app`, а **`node_modules`** держится в именованном volume `frontend_node_modules`, чтобы не затирать установленные в образе зависимости содержимым с хоста.
 
-### TypeScript check через Docker
-
-Из корня репозитория:
-
-```bash
-docker compose --env-file .env.development run --rm --no-deps frontend pnpm run typecheck
-```
+Проверка TypeScript из контейнера — в разделе [«Качество кода через Docker»](#качество-кода-через-docker-тесты--typecheck).
 
 ### Smoke (build + up + curl)
 

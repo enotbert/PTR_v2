@@ -7,7 +7,7 @@
 
 | Файл | Назначение |
 |---|---|
-| [docker-dev.md](docker-dev.md) | Локальный dev stack: `docker compose` (Postgres, backend, frontend scaffold), порты и smoke-проверки. |
+| [docker-dev.md](docker-dev.md) | Docker-first локальный stack: `docker compose` (Postgres, backend, frontend), порты, health/OpenAPI/frontend smoke, pytest и `pnpm typecheck` через контейнеры. |
 | [db-migrations.md](db-migrations.md) | Postgres + `DATABASE_URL`, политика Alembic (baseline только после human approval), команда `alembic upgrade head` на чистую БД через Compose. |
 | [websocket-protocol-v1.md](websocket-protocol-v1.md) | Минимальный WebSocket protocol contract для lobby/combat v1: snapshots, events, commands, errors, sequence/idempotency и reconnect. |
 
