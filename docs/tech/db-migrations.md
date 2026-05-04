@@ -8,6 +8,7 @@
 - Сервис **`backend`** получает **`DATABASE_URL`** (строка подключения к хосту `postgres` и порту `5432` внутри сети Compose). Значение собирается из переменных `POSTGRES_*` в compose; см. тот же файл.
 - Проверка подключения из приложения: HTTP **`GET /health`** — при успешном `SELECT 1` возвращается `"postgres": "reachable"` (см. `apps/backend/app/main.py`).
 - **Alembic** в каталоге `apps/backend/`: `alembic.ini`, пакет `alembic/` с `env.py` и ревизиями в `alembic/versions/`. URL для миграций берётся из **`DATABASE_URL`**; строка `postgresql://…` приводится к виду **`postgresql+psycopg://…`** для SQLAlchemy 2 + psycopg3.
+- Ревизия **`7c8bb0c12f4a`** (после `e8f4a2b1c9d0`): таблицы **`command_dedup`** и **`game_audit_events`** (PTR-71, JSONB для `payload_json`).
 
 ## Политика для агентов
 
