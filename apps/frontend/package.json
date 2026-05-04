@@ -12,9 +12,13 @@
     "lint:ci": "biome ci .",
     "format": "biome format --write .",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "generate:api": "openapi-typescript ./src/generated/openapi.json -o ./src/generated/api-types.ts",
+    "export:openapi": "node ./scripts/export-openapi.mjs",
+    "sync:api": "pnpm run export:openapi && pnpm run generate:api"
   },
   "dependencies": {
+    "openapi-fetch": "^0.17.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -28,9 +32,10 @@
     "@types/react-dom": "^19.0.1",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^25.0.1",
+    "openapi-typescript": "^7.13.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "vitest": "^3.0.5",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^3.0.5"
   }
 }

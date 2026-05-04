@@ -60,6 +60,24 @@ docker compose --env-file .env.development run --rm --no-deps backend \
   uv run python -m app.export_openapi --output /tmp/openapi.json
 ```
 
+Чтобы записать схему в репозиторий для генерации frontend-клиента (`PTR-29`), смонтируй каталог `apps/frontend/src/generated` и перезапиши `openapi.json` (из корня репозитория; PowerShell используй в Git Bash или адаптируй путь):
+
+```bash
+docker compose --env-file .env.development run --rm --no-deps \
+  -v "$(pwd)/apps/frontend/src/generated:/out" backend \
+  uv run python -m app.export_openapi --output /out/openapi.json
+```
+
+Затем в `apps/frontend` сгенерируй TypeScript-типы (`openapi-typescript`) и проверь сборку:
+
+```bash
+cd apps/frontend
+pnpm run generate:api
+pnpm run typecheck
+```
+
+Или одной командой из `apps/frontend`: `pnpm run sync:api` (экспорт через Docker Compose в `src/generated/openapi.json` + `generate:api`). Подробности и политика «не дублировать DTO» — в `apps/frontend/src/generated/README.md`.
+
 6. Проверка frontend: открой `http://localhost:15173` (порт см. `FRONTEND_PUBLISH_PORT`, по умолчанию **15173**). Должна открыться страница Vite с заголовком приложения.
 
 ## Качество кода через Docker (тесты / typecheck)
@@ -70,6 +88,7 @@ docker compose --env-file .env.development run --rm --no-deps backend \
 |--------|------------------------------|
 | Backend: pytest | `docker compose --env-file .env.development run --rm --no-deps backend uv run pytest -q` |
 | Frontend: TypeScript (`tsc --noEmit`) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run typecheck` |
+| Frontend: OpenAPI → TS (`openapi-typescript`) | Из `apps/frontend`: `pnpm run generate:api` (нужен актуальный `src/generated/openapi.json`; полный цикл — `pnpm run sync:api`, см. выше) |
 | Frontend: Vitest (unit) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:unit` |
 | Frontend: Playwright (e2e) | Однократно установить браузер в образе: `docker compose --env-file .env.development run --rm --no-deps frontend pnpm exec playwright install chromium`, затем `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:e2e` |
 

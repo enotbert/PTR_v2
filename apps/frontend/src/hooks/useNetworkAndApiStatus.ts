@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { createApiClient } from "../api/client";
+
 export type ConnectivityState =
   | "checking"
   | "offline"
@@ -7,34 +9,19 @@ export type ConnectivityState =
   | "ready"
   | "api-unavailable";
 
-const HEALTH_PATH = "/health";
 const CHECK_TIMEOUT_MS = 6000;
 const RECHECK_MS = 30_000;
-
-function normalizeApiBase(raw: string): string {
-  return raw.trim().replace(/\/+$/, "");
-}
-
-function healthUrl(apiBase: string): string {
-  return `${normalizeApiBase(apiBase)}${HEALTH_PATH}`;
-}
 
 async function fetchHealthStatus(
   apiBase: string,
   signal: AbortSignal,
 ): Promise<"ok" | "degraded" | "fail"> {
-  const url = healthUrl(apiBase);
+  const client = createApiClient(apiBase);
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      signal,
-      credentials: "omit",
-      cache: "no-store",
-    });
-    if (!res.ok) {
+    const { data, error, response } = await client.GET("/health", { signal });
+    if (error || !response?.ok) {
       return "fail";
     }
-    const data: unknown = await res.json();
     if (
       data &&
       typeof data === "object" &&
