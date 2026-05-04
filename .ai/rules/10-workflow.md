@@ -64,6 +64,7 @@ git checkout -b PTR-XXX-<kebab-slug>
 | Типы | `<typecheck-cmd>` |
 | Тесты | `<test-cmd>` |
 | **Для UI:** Playwright/E2E | `<e2e-cmd>` |
+| **Сервисы из `docker-compose.yml` изменены?** | См. **«Строгая проверка в Docker»** в [`40-code-quality.md`](40-code-quality.md): `docker compose --env-file .env.development config`, `build` / smoke для затронутых сервисов (детали в [`docs/tech/docker-dev.md`](../../docs/tech/docker-dev.md)) |
 
 Если хотя бы одна проверка падает — **не пушить**, починить локально.
 

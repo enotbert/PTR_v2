@@ -1,5 +1,13 @@
 # Docker Compose — локальный dev stack
 
+## Строгая проверка в Docker
+
+Для агентов и разработчиков: изменения сервисов из этого Compose **обязаны** подтверждаться прогоном через Docker (сборка образа + smoke по сервису), а не только хостовыми `pnpm`/`uv`. Политика зафиксирована в [`.ai/rules/40-code-quality.md`](../../.ai/rules/40-code-quality.md) («Строгая проверка в Docker»).
+
+**Файл `.env.development`:** не коммитится; шаблон — [`.env.development.example`](../../.env.development.example). Если файла нет — скопируй пример: `cp .env.development.example .env.development` (Windows: аналог). Затем проверь валидность: `docker compose --env-file .env.development config` (должен завершиться с кодом 0).
+
+---
+
 Минимальный состав (PTR-17 / PTR-19): **`postgres`**, **`backend`** (FastAPI), **`frontend`** (Vite dev server + React + TypeScript).
 
 Файлы: корневой `docker-compose.yml`, контексты `apps/backend/` и `apps/frontend/`.
