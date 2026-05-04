@@ -1,19 +1,31 @@
-"""Minimal FastAPI app for Docker dev stack (PTR-17 scaffold, PTR-18 uv/pytest)."""
+"""FastAPI backend baseline with health and OpenAPI endpoints."""
 
 import os
 
 import psycopg
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
-app = FastAPI(title="PTR backend (dev scaffold)", version="0.0.0")
+router = APIRouter()
 
 
-@app.get("/")
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="PTR backend",
+        version="0.1.0",
+        docs_url="/docs",
+        openapi_url="/openapi.json",
+        redoc_url=None,
+    )
+    app.include_router(router)
+    return app
+
+
+@router.get("/")
 def root() -> dict:
     return {"service": "backend", "docs": "/docs"}
 
 
-@app.get("/health")
+@router.get("/health")
 def health() -> dict:
     """Uvicorn liveness plus Postgres reachability via compose network."""
 
@@ -26,3 +38,6 @@ def health() -> dict:
     except psycopg.Error:
         return {"status": "degraded", "postgres": "unreachable"}
     return {"status": "ok", "postgres": "reachable"}
+
+
+app = create_app()

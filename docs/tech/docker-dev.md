@@ -53,6 +53,13 @@ docker compose --env-file .env.development up --build
 curl -fsS "http://localhost:18080/openapi.json" | head -c 200
 ```
 
+Экспорт схемы в файл (изолированный одноразовый контейнер backend):
+
+```bash
+docker compose --env-file .env.development run --rm --no-deps backend \
+  uv run python -m app.export_openapi --output /tmp/openapi.json
+```
+
 6. Проверка frontend: открой `http://localhost:15173` (порт см. `FRONTEND_PUBLISH_PORT`, по умолчанию **15173**). Должна открыться страница Vite с заголовком приложения.
 
 ## Качество кода через Docker (тесты / typecheck)

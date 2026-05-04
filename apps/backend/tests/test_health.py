@@ -18,6 +18,15 @@ def test_root(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["service"] == "backend"
+    assert body["docs"] == "/docs"
+
+
+def test_openapi_schema_contains_health_path(client: TestClient) -> None:
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["openapi"].startswith("3.")
+    assert "/health" in schema["paths"]
 
 
 def test_health_without_database_url(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
