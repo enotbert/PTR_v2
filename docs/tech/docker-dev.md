@@ -110,6 +110,21 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 
 Локальные E2E (Playwright) в `apps/frontend/playwright.config.ts` поднимают Vite на **отдельном порту 5174**, чтобы тесты не цеплялись к «чужому» dev server на `5173` и не мешали обычной разработке на дефолтном порту Compose.
 
+### PWA Manifest (M3) manual checklist
+
+Для задачи `PTR-23` (manifest baseline + prototype icon) ручная проверка выполняется после запуска frontend (`docker compose --env-file .env.development up frontend` или локально `pnpm run dev`):
+
+1. Открыть `http://localhost:15173` (или свой `FRONTEND_PUBLISH_PORT`) и убедиться, что `GET /manifest.webmanifest` отдаёт JSON 200.
+2. В DevTools открыть **Application → Manifest** и проверить:
+   - `Name`: `Pocket Raid Tavern`
+   - `Short name`: `PRT`
+   - `Start URL`: `/`
+   - `Theme color`: `#4f46e5`
+   - `Background color`: `#f1f5f9`
+3. Проверить, что иконка берётся из prototype-пути `icons/prototype/pwa-icon.svg`.
+4. Проверить, что source notes присутствуют в `apps/frontend/public/icons/prototype/SOURCE_NOTES.md`.
+5. Подтвердить, что в задаче **нет** service worker и offline gameplay queue (вне scope `PTR-23`).
+
 ### Smoke (build + up + curl)
 
 Требуется файл **`.env.development`** в корне (скопируй из `.env.development.example`):
