@@ -44,10 +44,11 @@ From repo root ([ADR-0006](../../../docs/adr/0006-python-lmstudio-coder-adapter.
 python -m ptr_coder \
   --handoff ".ai/handoffs/PTR-XXX-<slug>.md" \
   --root "." \
-  --max-iterations 32
+  --max-iterations 32 \
+  --cancel-file ".ptr_coder_cancel"
 ```
 
-Substitute the real handoff filename. Optionally export `PTR_CODER_BASE_URL`, `PTR_CODER_MODEL`, `PTR_CODER_API_KEY` before running.
+Substitute the real handoff filename. Optionally export `PTR_CODER_BASE_URL`, `PTR_CODER_MODEL`, `PTR_CODER_API_KEY`, `PTR_CODER_REQUEST_TIMEOUT_SEC` before running. Omit `--cancel-file` if you only rely on Ctrl+C to cancel.
 
 ### Step 3 — Run
 
@@ -55,7 +56,8 @@ Use the Shell tool from repo root. LM inference can take **minutes** — use a g
 
 ### Step 4–5 — Capture
 
-- Record exit code, tail of stderr if non-zero.
+- Record exit code; **follow stderr live**: ptr_coder prints `[ptr_coder]` lines (iteration, response time, tool names) so long LM calls are visible.
+- **Cancel a hung run:** ask the user to **Ctrl+C**, or create the file passed as `--cancel-file` (e.g. orchestrator `touch .ptr_coder_cancel` if that path was agreed). Exit code **130** means cooperative cancel. For stuck HTTP only, use **`PTR_CODER_REQUEST_TIMEOUT_SEC`** (see `packages/ptr_coder/README.md`).
 - `git status --short`, `git diff` for scope audit.
 - Append **`## Result`** (or `## Result (Iteration N)`) in the handoff — **Cursor** writes this; ptr_coder does not edit the handoff file.
 
