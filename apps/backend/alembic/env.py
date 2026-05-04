@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
+import app.models.identity  # noqa: F401 — register models
 from alembic import context
+from app.models.base import Base
 from sqlalchemy import create_engine, pool
 
 config = context.config
@@ -13,7 +15,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def get_database_url() -> str:

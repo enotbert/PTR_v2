@@ -1,11 +1,27 @@
-"""FastAPI backend baseline with health and OpenAPI endpoints."""
+"""FastAPI backend: health, OpenAPI, and v1 session API."""
+
+from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import APIRouter, FastAPI
 
+from app.api.v1.sessions import router as sessions_router
+from app.errors import ApiError, api_error_handler
+
 router = APIRouter()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if url:
+        from app.db import configure_engine
+
+        configure_engine(url)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -15,8 +31,11 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         openapi_url="/openapi.json",
         redoc_url=None,
+        lifespan=lifespan,
     )
+    app.add_exception_handler(ApiError, api_error_handler)
     app.include_router(router)
+    app.include_router(sessions_router, prefix="/v1")
     return app
 
 
