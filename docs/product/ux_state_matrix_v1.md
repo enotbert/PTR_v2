@@ -1,7 +1,7 @@
 # UX/state matrix v1
 
 Статус: draft v0.1
-Связано с: PTR-15, [PRD v1](PRD_v1_public_early_access.md), [ADR-0007](../adr/0007-minimal-roles-and-skills-v1.md), [Enemy roster v1](enemy_roster_v1.md), [Weekly event v1](weekly_event_v1.md), [WebSocket protocol v1](../tech/websocket-protocol-v1.md)
+Связано с: PTR-15, PTR-34, [PRD v1](PRD_v1_public_early_access.md), [ADR-0007](../adr/0007-minimal-roles-and-skills-v1.md), [Enemy roster v1](enemy_roster_v1.md), [Weekly event v1](weekly_event_v1.md), [WebSocket protocol v1](../tech/websocket-protocol-v1.md)
 
 ## 0. Роль документа
 
@@ -89,6 +89,62 @@ Playwright baseline для first session:
 | 8 | Reward/progress | `Contribute to tavern` | Already claimed: continue. Weekly not eligible: explain. API unavailable: blocked retry. `Share result`, `Claim weekly cache` и `Return tavern` — secondary, если доступны. | Несколько rewards не создают несколько конкурирующих primary CTA. |
 | 9 | Repeat/return/share | `Start next raid` или `Share result` | Empty: no next raid -> tavern. Error: retry share creation. | Share CTA вторичный, кроме поверхностей, явно посвящённых share/result. |
 
+### 5.1 Tavern home — детальная state matrix v1 (PTR-34)
+
+Назначение: конкретизировать экран **Tavern home** (шаг 1 таблицы §5) для PRD §6.2, §7 и downstream PTR-36 без добавления
+UI-кода и без новых gameplay-механик вне `weekly_event_v1.md` / PRD.
+
+#### Поверхности (IA-слоты)
+
+| Поверхность | Роль | Связь с PRD / weekly |
+|---|---|---|
+| Зона главного raid CTA | Один dominant переход в raid flow (solo/party/available raid) | PRD §6.2, §6.3 |
+| Weekly project card | `weekly_route_reopening`: название, shared progress, lifecycle (`active`, `completed`, `reward_claimable`, `expired`) | `weekly_event_v1.md` §3, §6; визуально **всегда secondary** к raid CTA, включая completed weekly (§8) |
+| Rewards / contribution summary | Краткий снимок последнего вклада игрока и/или tavern-facing feedback после рейдов | PRD §6.2, §6.6 |
+| Chronicle / recent events | Компактный список последних событий (в т.ч. weekly shared reward / chronicle entry) | PRD §6.2; пустой список не забирает primary CTA |
+
+Все обязательные действия — **touch-first** (§2). Нет hover-only affordances. Слоты резервируют высоту до прихода данных,
+чтобы skeleton/ошибка не сдвигали raid CTA из-под пальца (§2 «No key layout shift»).
+
+#### Матрица состояний и главный CTA
+
+| Экранное состояние | Условия | Главный CTA | Вторичные действия (не primary) | Примечания по empty/loading/error/offline/API |
+|---|---|---|---|---|
+| T1 Bootstrap | Первый заход на tavern home, ждём REST bundle (tavern/weekly/summary/chronicle) | Тот же label **`Start raid`**, **disabled**, в зарезервированной зоне + skeleton/короткий статус загрузки | Weekly/chronicle: skeleton или статичный placeholder без отдельной gameplay-кнопки | Loading: не менять вертикальный якорь primary CTA по сравнению с T2 |
+| T2 Ready / online | API healthy, WebSocket применим к live hints (если есть), игрок может начать raid flow | **`Start raid`** | Карточка weekly (tap → деталь/hint), пункты chronicle (навигация), summary — информационно | Empty chronicle: copy «события появятся после рейдов», primary не меняется |
+| T3 Raid entry заблокирован intent-ом | Backend/фича-флаг: сейчас нет валидного entry в бой с tavern home (например, все пути требуют шага party/selection) | **`Start raid`** ведёт в raid/party шаг §5.2 **с** server-driven empty/blocked copy (один primary label на tavern home) | `Join party` / быстрый переход к списку — **secondary**, если показан на этом экране | Не прятать блокировку за вторым экраном без объяснения на tavern — краткий inline рядом с disabled primary допустим |
+| T4 Offline | `navigator.onLine === false` или эквивалент shell | **`Retry connection`** (восстановить сеть и обновить данные) | `Start raid` **disabled** с offline copy; weekly card — **только last-known read-only**, без claim/actions, требующих API | Offline gameplay queue запрещён (§2, §3) |
+| T5 API unavailable | Сеть есть, HTTP/API недоступны для tavern bundle | **`Retry`** | Опционально secondary «к старту приложения», если deep link; без дублирующих конкурирующих primary | Copy user-safe, без технических stack trace |
+| T6 Ошибка fetch tavern bundle | Retryable client/server error при загрузке tavern | **`Retry`** | `Return to start` только если уместен контекстом first-session shell | После успешного retry возврат к T1→T2 без смены layout-якоря |
+| T7 Reconnecting (live hints) | WebSocket reconnecting, REST summary может быть stale для party presence | **`Start raid`** **disabled** до fresh snapshot + баннер reconnect | Weekly/chronicle read-only как при stale | Авторитетные действия заморожены (§3 «Reconnecting») |
+| T8 Weekly `active` | Совпадает с T2/T3 с точки зрения CTA; карточка показывает progress | **`Start raid`** (как в T2/T3) | Weekly card: прогресс, tap за подробностями | `weekly_event_viewed` — см. `weekly_event_v1.md` §7 |
+| T9 Weekly `completed` / `reward_claimable` / `expired` | Lifecycle weekly согласно `weekly_event_v1.md` | **`Start raid`** не уступает primary weekly-завершению | На карточке: hint «награда на экране рейда» / «claim в reward flow» / «неделя завершена» — **без второго равного primary** на той же высоте, что raid CTA | Claim weekly cache остаётся primary в **reward screen** §5.8; на tavern home только secondary entry через карточку |
+
+#### Mobile и safe-area
+
+- Primary CTA и weekly card укладываются в **small viewport** без горизонтального обязательного scroll для старта рейда.
+- Primary CTA — в зоне большого пальца **выше** home indicator / нижнего browser chrome; не размещать единственный raid CTA под системной полосой.
+- Статус сети / reconnecting (PTR-22 shell) **не перекрывает** зарезервированную зону raid CTA; при конфликте приоритет у доступности primary.
+- Chronicle — вертикальный scroll внутри собственной области; scroll не должен маскировать raid CTA (раздельные регионы или collapse).
+
+#### Copy: черновик v1 (на подтверждение владельцем продукта)
+
+Строки ниже — **рекомендуемые** формулировки для согласования с @enotbert (acceptance criterion «спорные product/copy
+decisions» в Linear PTR-34). До подтверждения downstream UI может использовать их как placeholder.
+
+| Контекст | Черновик copy |
+|---|---|
+| T4 offline banner | «Нужна сеть, чтобы начать рейд. Таверна доступна для просмотра.» |
+| T5 API unavailable | «Сервис недоступен. Попробуйте снова через минуту.» |
+| T6 retry | «Не удалось загрузить таверну.» + кнопка `Retry` |
+| T7 reconnecting | «Восстанавливаем соединение…» |
+| Пустая chronicle (T2) | «Здесь появятся события таверны после рейдов.» |
+
+Покрытие **PRD §6.2** и NFR §7: таблица выше явно фиксирует raid CTA, проект таверны, награды/вклад, хронику,
+loading/offline/API/error/reconnecting и отсутствие hover-only / key layout shift. Ссылка на obsolete
+`docs/foundation/01_product_foundation.md` в задаче PTR-34 **не используется** как source of truth; вместо неё —
+PRD §6–§7 и этот документ (см. §1).
+
 Playwright baseline для regular raid:
 
 - Tavern home mobile smoke: raid CTA, weekly project card, reward/contribution summary и chronicle без hover-only controls.
@@ -124,10 +180,10 @@ Playwright baseline для social/share:
 
 ### PTR-34 — Tavern home states
 
-- Tavern home имеет один dominant raid CTA и secondary weekly/project/reward/chronicle surfaces.
-- State matrix включает loading, empty, offline, API unavailable и retryable error.
+- Tavern home имеет один dominant raid CTA и secondary weekly/project/reward/chronicle surfaces (детализация: **§5.1**).
+- State matrix включает loading, empty, offline, API unavailable и retryable error (строки T1–T7 в **§5.1**).
 - Weekly project card использует `weekly_route_reopening` и показывает shared progress рядом с raid CTA.
-- Weekly project card всегда secondary к main raid CTA, включая completed weekly event.
+- Weekly project card всегда secondary к main raid CTA, включая completed weekly event (T8–T9 в **§5.1**).
 
 ### PTR-42 — PixiJS CombatCanvas
 
