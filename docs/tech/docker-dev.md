@@ -63,6 +63,8 @@ curl -fsS "http://localhost:18080/openapi.json" | head -c 200
 |--------|------------------------------|
 | Backend: pytest | `docker compose --env-file .env.development run --rm --no-deps backend uv run pytest -q` |
 | Frontend: TypeScript (`tsc --noEmit`) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run typecheck` |
+| Frontend: Vitest (unit) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:unit` |
+| Frontend: Playwright (e2e) | Однократно установить браузер в образе: `docker compose --env-file .env.development run --rm --no-deps frontend pnpm exec playwright install chromium`, затем `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:e2e` |
 
 Отдельные **ESLint / Prettier (frontend)** и **Ruff / Black (backend)** в минимальном скелете не подключены: при появлении скриптов в `package.json` / `pyproject.toml` их следует вызывать так же через `docker compose run --rm --no-deps <сервис> …`.
 
@@ -105,6 +107,8 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 Для HMR исходники монтируются как `./apps/frontend:/app`, а **`node_modules`** держится в именованном volume `frontend_node_modules`, чтобы не затирать установленные в образе зависимости содержимым с хоста.
 
 Проверка TypeScript из контейнера — в разделе [«Качество кода через Docker»](#качество-кода-через-docker-тесты--typecheck).
+
+Локальные E2E (Playwright) в `apps/frontend/playwright.config.ts` поднимают Vite на **отдельном порту 5174**, чтобы тесты не цеплялись к «чужому» dev server на `5173` и не мешали обычной разработке на дефолтном порту Compose.
 
 ### Smoke (build + up + curl)
 
