@@ -66,6 +66,12 @@ curl -fsS "http://localhost:18080/openapi.json" | head -c 200
 | Frontend: Vitest (unit) | `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:unit` |
 | Frontend: Playwright (e2e) | Однократно установить браузер в образе: `docker compose --env-file .env.development run --rm --no-deps frontend pnpm exec playwright install chromium`, затем `docker compose --env-file .env.development run --rm --no-deps frontend pnpm run test:e2e` |
 
+### Playwright artifacts / trace policy (PTR-26)
+
+- Конфиг `apps/frontend/playwright.config.ts` использует `trace: "on-first-retry"`: trace пишется только при первом ретрае упавшего теста.
+- Артефакты сохраняются в контейнере в `apps/frontend/test-results/` и `apps/frontend/playwright-report/`.
+- Для PR достаточно приложить краткий статус прогона; trace прикладывается только для упавших smoke-сценариев (чтобы не раздувать артефакты на зелёных прогонах).
+
 Отдельные **ESLint / Prettier (frontend)** и **Ruff / Black (backend)** в минимальном скелете не подключены: при появлении скриптов в `package.json` / `pyproject.toml` их следует вызывать так же через `docker compose run --rm --no-deps <сервис> …`.
 
 **Опционально на хосте** (например, в CI или у разработчика с локальным `uv` / `pnpm`): зайти в `apps/backend` и выполнить `uv sync --frozen --group dev && uv run pytest -q`, в `apps/frontend` — `pnpm run typecheck`. Для согласованности с образами используй те же lockfile’ы (`uv.lock`, `pnpm-lock.yaml`).
