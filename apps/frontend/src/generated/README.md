@@ -19,6 +19,7 @@ Application code should **not** introduce parallel TypeScript types that mirror 
 1. Update FastAPI routes / models in `apps/backend`.
 2. Refresh `openapi.json` (see **OpenAPI — refresh snapshot** in [docker-dev.md](../../../../docs/tech/docker-dev.md)).
 3. Run `pnpm run generate:api` (in `apps/frontend`, or via the Docker one-liner in that doc).
-4. Commit the updated `openapi.json` and `api-types.ts` together with the backend change (or in the same PR series).
+4. Run `pnpm run format` in `apps/frontend` so Biome matches CI (`pnpm run lint:ci` checks these files).
+5. Commit the updated `openapi.json` and `api-types.ts` together with the backend change (or in the same PR series).
 
 WebSocket message shapes stay **out of** OpenAPI; they are documented separately when the protocol is defined.

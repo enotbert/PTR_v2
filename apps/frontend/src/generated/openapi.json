@@ -169,10 +169,775 @@
           }
         }
       }
+    },
+    "/v1/taverns/{tavern_id}/state": {
+      "get": {
+        "tags": ["Tavern v1"],
+        "summary": "Get Tavern Player State",
+        "description": "Placeholder tavern progression read (implementation: PTR-35).",
+        "operationId": "v1_get_tavern_player_state",
+        "parameters": [
+          {
+            "name": "tavern_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tavern Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerTavernStateOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/parties/{party_id}": {
+      "get": {
+        "tags": ["Party v1"],
+        "summary": "Get Party",
+        "description": "Placeholder party read (implementation: PTR-37).",
+        "operationId": "v1_get_party",
+        "parameters": [
+          {
+            "name": "party_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Party Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetailOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/parties": {
+      "post": {
+        "tags": ["Party v1"],
+        "summary": "Create Party",
+        "operationId": "v1_create_party",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/raids/{raid_id}": {
+      "get": {
+        "tags": ["Raid v1"],
+        "summary": "Get Raid",
+        "description": "Placeholder raid read (implementation: PTR-37).",
+        "operationId": "v1_get_raid",
+        "parameters": [
+          {
+            "name": "raid_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Raid Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaidDetailOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/raids": {
+      "post": {
+        "tags": ["Raid v1"],
+        "summary": "Create Raid",
+        "operationId": "v1_create_raid",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/players/me/rewards": {
+      "get": {
+        "tags": ["Rewards v1"],
+        "summary": "List My Rewards",
+        "description": "Placeholder rewards list (persistence and claim flow follow separate issues).",
+        "operationId": "v1_list_my_rewards",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardListOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rewards/{reward_id}/claims": {
+      "post": {
+        "tags": ["Rewards v1"],
+        "summary": "Claim Reward",
+        "operationId": "v1_claim_reward",
+        "parameters": [
+          {
+            "name": "reward_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Reward Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invites": {
+      "post": {
+        "tags": ["Invites v1"],
+        "summary": "Create Invite",
+        "operationId": "v1_create_invite",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invites/by-token/{token}": {
+      "get": {
+        "tags": ["Invites v1"],
+        "summary": "Get Invite By Token",
+        "description": "Public-shape preview for resolver UIs (implementation: PTR-55).",
+        "operationId": "v1_get_invite_by_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteDetailOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/debug/recent-events": {
+      "get": {
+        "tags": ["Analytics v1"],
+        "summary": "List Analytics Debug Events",
+        "description": "Debug-only read of recent analytics rows (implementation TBD; gated auth later).",
+        "operationId": "v1_list_analytics_debug_events",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsDebugEventListOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AnalyticsDebugEventListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsDebugEventOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "AnalyticsDebugEventListOut"
+      },
+      "AnalyticsDebugEventOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "event_name": {
+            "type": "string",
+            "title": "Event Name"
+          },
+          "player_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "raid_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raid Id"
+          },
+          "battle_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Battle Id"
+          },
+          "event_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Event At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "event_name", "event_at"],
+        "title": "AnalyticsDebugEventOut"
+      },
       "CreateSessionBody": {
         "properties": {
           "display_name": {
@@ -255,6 +1020,129 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InviteDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_by_player_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Player Id"
+          },
+          "raid_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raid Id"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "used", "expired", "revoked"],
+            "title": "Status",
+            "default": "active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_by_player_id",
+          "token",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "InviteDetailOut"
+      },
+      "PartyDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tavern_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tavern Id"
+          },
+          "created_by_player_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Player Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "locked", "in_raid", "archived"],
+            "title": "Status",
+            "default": "open"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/PartyMemberOut"
+            },
+            "type": "array",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": ["id", "tavern_id", "created_by_player_id"],
+        "title": "PartyDetailOut"
+      },
+      "PartyMemberOut": {
+        "properties": {
+          "player_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Player Id"
+          },
+          "role_id": {
+            "type": "string",
+            "title": "Role Id"
+          },
+          "is_raid_lead": {
+            "type": "boolean",
+            "title": "Is Raid Lead",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["player_id", "role_id"],
+        "title": "PartyMemberOut"
+      },
       "PlayerOut": {
         "properties": {
           "id": {
@@ -296,6 +1184,120 @@
           "is_active"
         ],
         "title": "PlayerOut"
+      },
+      "PlayerTavernStateOut": {
+        "properties": {
+          "tavern_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tavern Id"
+          },
+          "player_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Player Id"
+          },
+          "reputation": {
+            "type": "integer",
+            "title": "Reputation",
+            "default": 0
+          },
+          "weekly_points": {
+            "type": "integer",
+            "title": "Weekly Points",
+            "default": 0
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": ["tavern_id", "player_id", "updated_at"],
+        "title": "PlayerTavernStateOut",
+        "description": "Per-player tavern progression snapshot (authority: ``player_tavern_state``)."
+      },
+      "RaidDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "party_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Party Id"
+          },
+          "raid_template_id": {
+            "type": "string",
+            "title": "Raid Template Id",
+            "default": "unknown"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "active", "completed", "failed", "abandoned"],
+            "title": "Status",
+            "default": "pending"
+          }
+        },
+        "type": "object",
+        "required": ["id", "party_id"],
+        "title": "RaidDetailOut"
+      },
+      "RewardItemOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "player_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Player Id"
+          },
+          "raid_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raid Id"
+          },
+          "reward_type": {
+            "type": "string",
+            "enum": ["loot", "weekly", "invite_bonus"],
+            "title": "Reward Type",
+            "default": "loot"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "player_id", "created_at"],
+        "title": "RewardItemOut"
+      },
+      "RewardListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RewardItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "RewardListOut"
       },
       "SessionEnvelope": {
         "properties": {

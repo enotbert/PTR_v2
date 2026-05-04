@@ -68,6 +68,32 @@ def get_session_by_id(db: Session, session_id: uuid.UUID) -> PlayerSession | Non
     return db.get(PlayerSession, session_id)
 
 
+def assert_active_session_player_id(db: Session, session_id: uuid.UUID) -> uuid.UUID:
+    """Return ``player_id`` for a valid session (no DB touch / no last_seen update)."""
+
+    row = get_session_by_id(db, session_id)
+    if row is None:
+        raise ApiError(
+            status_code=404,
+            error="session_not_found",
+            message="Session was not found.",
+        )
+    now = _now()
+    if row.revoked_at is not None:
+        raise ApiError(
+            status_code=401,
+            error="session_revoked",
+            message="Session has been revoked.",
+        )
+    if _as_utc(row.expires_at) <= now:
+        raise ApiError(
+            status_code=401,
+            error="session_expired",
+            message="Session has expired.",
+        )
+    return row.player_id
+
+
 def validate_and_touch_session(
     db: Session,
     row: PlayerSession,

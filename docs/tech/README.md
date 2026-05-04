@@ -10,6 +10,7 @@
 | [docker-dev.md](docker-dev.md) | Docker-first локальный stack: `docker compose` (Postgres, backend, frontend), порты, health/OpenAPI/frontend smoke, pytest и `pnpm typecheck` через контейнеры. |
 | [db-migrations.md](db-migrations.md) | Postgres + `DATABASE_URL`, политика Alembic (baseline только после human approval), команда `alembic upgrade head` на чистую БД через Compose. |
 | [data-model-v1-proposal.md](data-model-v1-proposal.md) | Initial data model proposal для `PTR-27`: границы v1 таблиц/связей, backend authority checklist, idempotency и scope первых миграций для human approval. |
+| [rest-v1-skeleton.md](rest-v1-skeleton.md) | REST v1 resource skeleton (`PTR-32`): маршруты-заглушки, `501`/`ApiError`, привязка к follow-up Linear issues. |
 | [websocket-protocol-v1.md](websocket-protocol-v1.md) | Минимальный WebSocket protocol contract для lobby/combat v1: snapshots, events, commands, errors, sequence/idempotency и reconnect. |
 
 ## Правило обновления

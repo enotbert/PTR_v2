@@ -5,9 +5,12 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import Header
+from fastapi import Depends, Header
+from sqlalchemy.orm import Session
 
+from app.db import get_db
 from app.errors import ApiError
+from app.services.session import assert_active_session_player_id
 
 
 def parse_bearer_session_id(authorization: str | None) -> uuid.UUID | None:
@@ -43,3 +46,12 @@ def require_bearer_session_id(
         error="missing_authorization",
         message="Authorization: Bearer <session_id> is required.",
     )
+
+
+def require_session_player_id(
+    db: Annotated[Session, Depends(get_db)],
+    session_id: Annotated[uuid.UUID, Depends(require_bearer_session_id)],
+) -> uuid.UUID:
+    """Resolve bearer session to ``player_id`` (session must exist, not revoked, not expired)."""
+
+    return assert_active_session_player_id(db, session_id)
