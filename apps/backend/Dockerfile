@@ -13,6 +13,8 @@ RUN uv sync --frozen --no-cache --group dev
 
 COPY app ./app
 COPY tests ./tests
+COPY alembic.ini ./
+COPY alembic ./alembic
 
 ENV PATH="/app/.venv/bin:$PATH"
 
