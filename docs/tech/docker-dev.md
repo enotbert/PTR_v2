@@ -125,6 +125,20 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 4. Проверить, что source notes присутствуют в `apps/frontend/public/icons/prototype/SOURCE_NOTES.md`.
 5. Подтвердить, что в задаче **нет** service worker и offline gameplay queue (вне scope `PTR-23`).
 
+### PWA Service Worker (M4) manual checklist
+
+Для задачи `PTR-24` (service worker + offline shell) проверка выполняется на production-like сборке:
+
+1. Собрать frontend: `docker compose --env-file .env.development build frontend`.
+2. Запустить preview/стек и открыть frontend URL.
+3. В DevTools открыть **Application → Service Workers** и проверить, что worker активен.
+4. В DevTools (Network) включить **Offline**, затем перезагрузить страницу:
+   - должен отображаться app shell (не пустой документ/ошибка браузера);
+   - сеть/API статус должен быть деградирован/`offline`, без обещаний gameplay.
+5. Проверить, что `/api/*` не уходит в app-shell fallback:
+   - запросы к API при offline должны падать как сеть, а не возвращать `index.html`;
+   - service worker не должен кэшировать успешные API/WS ответы как offline source of truth.
+
 ### Smoke (build + up + curl)
 
 Требуется файл **`.env.development`** в корне (скопируй из `.env.development.example`):
