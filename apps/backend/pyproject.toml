@@ -14,6 +14,22 @@ dependencies = [
 dev = [
   "pytest>=8.0.0",
   "httpx>=0.27.0",
+  "ruff>=0.9.0",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
 ]
 
 [tool.uv]
