@@ -8,6 +8,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# ptr_coder orchestrator cancel file (if created under repo root; optional)
+.ptr_coder_cancel
+
 # Env / secrets — see .ai/rules/80-security-and-secrets.md
 .env
 .env.*
