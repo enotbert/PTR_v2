@@ -1,6 +1,6 @@
 # Docker Compose — локальный dev stack
 
-Минимальный состав (PTR-17): **`postgres`**, **`backend`** (FastAPI), **`frontend`** (заготовка порта до появления Vite bundle).
+Минимальный состав (PTR-17 / PTR-19): **`postgres`**, **`backend`** (FastAPI), **`frontend`** (Vite dev server + React + TypeScript).
 
 Файлы: корневой `docker-compose.yml`, контексты `apps/backend/` и `apps/frontend/`.
 
@@ -33,6 +33,8 @@ docker compose --env-file .env.development up --build
 
 4. Проверка backend и Postgres: открой `http://localhost:18080/health` (порт см. `BACKEND_PUBLISH_PORT`, по умолчанию **18080**). Ожидается JSON с `"postgres": "reachable"` после того, как сервис `postgres` станет healthy.
 
+5. Проверка frontend: открой `http://localhost:15173` (порт см. `FRONTEND_PUBLISH_PORT`, по умолчанию **15173**). Должна открыться страница Vite с заголовком приложения.
+
 ## Pytest (backend smoke)
 
 Образ `backend` собирается с **uv** и lockfile (`apps/backend/uv.lock`); dev-группа установлена в образе, чтобы можно было гонять тесты без отдельного Dockerfile.
@@ -57,7 +59,35 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 
 Сервисы разделяют **дефолтную сеть Compose**. Backend получает строку **`DATABASE_URL`** (см. `docker-compose.yml`) с хостом `postgres` и портом `5432` внутри сети. Менять хост при локальном compose не требуется.
 
-## Frontend
+## Frontend (Vite dev)
 
-Образ только резервирует порт **`5173`** и держит контейнер активным до появления манифестов пакетного менеджера приложения (`package.json` / lockfile и т.д.). Тогда нужно будет заменить `CMD` в `apps/frontend/Dockerfile` на реальный dev/production entrypoint.
+Сервис **`frontend`** собирается из `apps/frontend/` (**pnpm** + Vite 6 + React + TypeScript). Внутри контейнера dev server слушает **`0.0.0.0:5173`**; на хост публикуется `FRONTEND_PUBLISH_PORT` → `5173`.
+
+### API origin (`VITE_API_BASE_URL`)
+
+Браузер пользователя обращается к backend по **хостовому** URL (не по имени сервиса `backend` внутри Docker-сети). В `docker-compose.yml` для `frontend` задано:
+
+`VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:18080}`
+
+То есть по умолчанию используется тот же хост, что и у дефолтного `BACKEND_PUBLISH_PORT` (**18080**). Переопредели переменную в `.env.development` при других портах или reverse proxy. **Не клади продакшен-секреты** в репозиторий — только примеры в `.env.development.example`.
+
+### Bind mount и `node_modules`
+
+Для HMR исходники монтируются как `./apps/frontend:/app`, а **`node_modules`** держится в именованном volume `frontend_node_modules`, чтобы не затирать установленные в образе зависимости содержимым с хоста.
+
+### TypeScript check через Docker
+
+Из корня репозитория:
+
+```bash
+docker compose --env-file .env.development run --rm --no-deps frontend pnpm run typecheck
+```
+
+### Smoke (build + up + curl)
+
+Требуется файл **`.env.development`** в корне (скопируй из `.env.development.example`):
+
+```bash
+bash scripts/smoke-frontend-docker.sh
+```
 
