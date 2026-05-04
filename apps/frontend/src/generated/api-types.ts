@@ -94,6 +94,10 @@ export interface components {
       error: string;
       /** Message */
       message: string;
+      /** Details */
+      details?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
