@@ -26,7 +26,7 @@ test.describe("app shell (mobile viewport)", () => {
     await expect(cta).toBeEnabled();
   });
 
-  test("shows offline state after going offline on an already loaded shell", async ({
+  test("shows offline state on an already loaded shell", async ({
     context,
     page,
   }) => {
