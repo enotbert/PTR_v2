@@ -1,4 +1,4 @@
-# Dev stack skeleton (frontend, backend, Postgres). PTR-17 — see docs/tech/docker-dev.md.
+# Dev stack: frontend, backend, Postgres (PTR-17/19). Postgres + DB URL: PTR-20 — see docs/tech/docker-dev.md and docs/tech/db-migrations.md.
 
 services:
   postgres:
