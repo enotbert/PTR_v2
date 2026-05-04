@@ -239,10 +239,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "error",
-          "message"
-        ],
+        "required": ["error", "message"],
         "title": "ErrorBody"
       },
       "HTTPValidationError": {
@@ -310,10 +307,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "player",
-          "session"
-        ],
+        "required": ["player", "session"],
         "title": "SessionEnvelope"
       },
       "SessionOut": {
@@ -351,12 +345,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "player_id",
-          "issued_at",
-          "expires_at"
-        ],
+        "required": ["id", "player_id", "issued_at", "expires_at"],
         "title": "SessionOut"
       },
       "ValidationError": {
@@ -385,11 +374,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       }
     }
