@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 test.describe.configure({ mode: "serial" });
 
 test.describe("app shell (mobile viewport)", () => {
-  test.beforeEach(async ({ page }) => {
+  test("shows network status strip and enables primary CTA when API healthy", async ({
+    page,
+  }) => {
     await page.route("**/health", async (route) => {
       await route.fulfill({
         status: 200,
@@ -11,11 +13,7 @@ test.describe("app shell (mobile viewport)", () => {
         body: JSON.stringify({ status: "ok", postgres: "reachable" }),
       });
     });
-  });
 
-  test("shows network status strip and enables primary CTA when API healthy", async ({
-    page,
-  }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     const strip = page.getByTestId("network-status");
@@ -32,6 +30,14 @@ test.describe("app shell (mobile viewport)", () => {
     context,
     page,
   }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("network-status")).toBeVisible({
       timeout: 15_000,
@@ -44,5 +50,27 @@ test.describe("app shell (mobile viewport)", () => {
       { timeout: 10_000 },
     );
     await expect(page.getByTestId("primary-cta")).toBeDisabled();
+  });
+
+  test("keeps shell available but blocks gameplay when API is unavailable", async ({
+    page,
+  }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "degraded", postgres: "unreachable" }),
+      });
+    });
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("network-status")).toHaveAttribute(
+      "data-status",
+      "api-unavailable",
+      { timeout: 15_000 },
+    );
+    await expect(page.getByTestId("primary-cta")).toBeDisabled();
+    await expect(page.getByText(/shell stays available/i)).toBeVisible();
   });
 });

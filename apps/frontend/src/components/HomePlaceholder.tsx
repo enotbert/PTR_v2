@@ -1,3 +1,4 @@
+import { useGameplayActionGate } from "../hooks/useGameplayActionGate";
 import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
 
 type Props = {
@@ -5,7 +6,7 @@ type Props = {
 };
 
 export function HomePlaceholder({ connectivity }: Props) {
-  const canStart = connectivity === "ready";
+  const gameplayGate = useGameplayActionGate(connectivity);
 
   return (
     <section className="home-placeholder" aria-labelledby="home-title">
@@ -21,17 +22,18 @@ export function HomePlaceholder({ connectivity }: Props) {
           type="button"
           className="btn btn--primary"
           data-testid="primary-cta"
-          disabled={!canStart}
-          aria-disabled={!canStart}
+          disabled={gameplayGate.blocked}
+          aria-disabled={gameplayGate.blocked}
+          onClick={() => {
+            gameplayGate.runIfAllowed(() => {
+              // Placeholder: real gameplay command will be wired in PTR combat/tavern flows.
+            });
+          }}
         >
           Start first raid
         </button>
-        {!canStart && (
-          <p className="home-placeholder__hint">
-            {connectivity === "checking"
-              ? "Checking network and server…"
-              : "Available when you are online and the server responds."}
-          </p>
+        {gameplayGate.blocked && (
+          <p className="home-placeholder__hint">{gameplayGate.message}</p>
         )}
       </div>
     </section>

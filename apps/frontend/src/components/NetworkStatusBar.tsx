@@ -5,7 +5,7 @@ const LABEL: Record<ConnectivityState, string> = {
   offline: "You are offline",
   "no-api-base": "API base URL not configured",
   ready: "Connected",
-  "api-unavailable": "Server unavailable — try again soon",
+  "api-unavailable": "Shell online, gameplay server unavailable",
 };
 
 export function NetworkStatusBar({ status }: { status: ConnectivityState }) {
