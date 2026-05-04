@@ -42,10 +42,11 @@ describe("useNetworkAndApiStatus", () => {
       expect(result.current).toBe("ready");
     });
 
-    expect(fetch).toHaveBeenCalledWith(
-      "http://localhost:18080/health",
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(fetch).mock.calls[0];
+    expect(call?.[0]).toBeInstanceOf(Request);
+    expect((call?.[0] as Request).url).toBe("http://localhost:18080/health");
+    expect((call?.[0] as Request).method).toBe("GET");
   });
 
   it("returns api-unavailable when health is degraded", async () => {
