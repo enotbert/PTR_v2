@@ -165,8 +165,8 @@ def claim_reward(
 ) -> NoReturn:
     _ = (reward_id, _session_player_id)
     _not_implemented(
-        "PTR-32-follow-up",
-        "Reward claim API is not scheduled yet; open a follow-up from PTR-32.",
+        "PTR-72",
+        "Reward claim API is not implemented yet (see Linear PTR-72).",
     )
 
 

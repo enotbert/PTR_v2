@@ -14,7 +14,7 @@
 | `GET /v1/raids/{raid_id}` | Placeholder-объект | PTR-37 |
 | `POST /v1/raids` | `501` | PTR-37 |
 | `GET /v1/players/me/rewards` | Пустой список | Отдельная задача после модели rewards/claims |
-| `POST /v1/rewards/{reward_id}/claims` | `501`, `details.tracked_by`: `PTR-32-follow-up` | Завести issue и заменить маркер |
+| `POST /v1/rewards/{reward_id}/claims` | `501`, `details.tracked_by`: `PTR-72` | [PTR-72](https://linear.app/ptr-game/issue/PTR-72/realizovat-rest-api-vydachi-nagrad-reward-claim-idempotent) |
 | `POST /v1/invites` | `501` | PTR-55 |
 | `GET /v1/invites/by-token/{token}` | Placeholder-объект (не резолвит БД) | PTR-55 |
 | `GET /v1/analytics/debug/recent-events` | Пустой список | Отдельная задача (хранилище + ACL) |
