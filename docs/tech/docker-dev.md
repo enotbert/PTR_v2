@@ -69,9 +69,7 @@ docker compose --env-file .env.development run --rm --no-deps backend uv run pyt
 
 ## Миграции БД (Alembic)
 
-Политика репозитория: **файлы Alembic и baseline** добавляются только после **explicit human approval** (задача PTR-20, [`.ai/rules/90-forbidden.md`](../../.ai/rules/90-forbidden.md)).
-
-Целевые команды для применения миграций на **чистую** локальную БД через Compose и запуск backend на хосте с `DATABASE_URL` — в отдельном документе **[db-migrations.md](db-migrations.md)**.
+Конфиг Alembic и ревизии лежат в **`apps/backend/`** (`alembic.ini`, каталог `alembic/`). Команды `upgrade head` / `current` и политика для агентов — в **[db-migrations.md](db-migrations.md)**.
 
 ## Frontend (Vite dev)
 
