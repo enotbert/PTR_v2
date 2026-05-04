@@ -43,3 +43,4 @@ class CreateSessionBody(BaseModel):
 class ErrorBody(BaseModel):
     error: str
     message: str
+    details: dict[str, object] | None = None

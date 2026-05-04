@@ -9,20 +9,30 @@ from fastapi.responses import JSONResponse
 
 
 class ApiError(Exception):
-    """Raised for expected client errors; serialized as {error, message}."""
+    """Raised for expected client errors.
 
-    def __init__(self, status_code: int, error: str, message: str) -> None:
+    Serialized as ``error`` and ``message``, with optional structured ``details``.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        error: str,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
         self.status_code = status_code
         self.error = error
         self.message = message
+        self.details = details
         super().__init__(message)
 
 
 def api_error_handler(_request: Request, exc: ApiError) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.error, "message": exc.message},
-    )
+    body: dict[str, Any] = {"error": exc.error, "message": exc.message}
+    if exc.details is not None:
+        body["details"] = exc.details
+    return JSONResponse(status_code=exc.status_code, content=body)
 
 
 def http_error_dict(status_code: int, error: str, message: str) -> dict[str, Any]:

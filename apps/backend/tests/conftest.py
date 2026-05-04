@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import uuid
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from app.db import get_db, init_metadata_for_tests
 from app.main import create_app
+from app.models.identity import Player, PlayerSession
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -51,3 +55,41 @@ def db_session(sqlite_engine):
         s.commit()
     finally:
         s.close()
+
+
+@pytest.fixture
+def db_player_id(db_session) -> uuid.UUID:
+    now = datetime.now(UTC)
+    p = Player(
+        display_name="FixturePlayer",
+        created_at=now,
+        updated_at=now,
+        last_seen_at=now,
+        is_active=True,
+    )
+    db_session.add(p)
+    db_session.flush()
+    return p.id
+
+
+@pytest.fixture
+def db_player_session_ids(db_session) -> tuple[uuid.UUID, uuid.UUID]:
+    now = datetime.now(UTC)
+    exp = now + timedelta(days=30)
+    p = Player(
+        display_name="FixturePlayer2",
+        created_at=now,
+        updated_at=now,
+        last_seen_at=now,
+        is_active=True,
+    )
+    db_session.add(p)
+    db_session.flush()
+    s = PlayerSession(
+        player_id=p.id,
+        issued_at=now,
+        expires_at=exp,
+    )
+    db_session.add(s)
+    db_session.flush()
+    return p.id, s.id
