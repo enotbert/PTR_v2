@@ -1,12 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useNetworkAndApiStatus } from "./useNetworkAndApiStatus";
 
 describe("useNetworkAndApiStatus", () => {
@@ -88,5 +81,4 @@ describe("useNetworkAndApiStatus", () => {
     expect(result.current).toBe("offline");
     expect(fetch).not.toHaveBeenCalled();
   });
-
 });

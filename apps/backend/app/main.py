@@ -23,6 +23,6 @@ def health() -> dict:
     try:
         with psycopg.connect(database_url, connect_timeout=5) as conn:
             conn.execute("SELECT 1")
-    except Exception:
+    except psycopg.Error:
         return {"status": "degraded", "postgres": "unreachable"}
     return {"status": "ok", "postgres": "reachable"}

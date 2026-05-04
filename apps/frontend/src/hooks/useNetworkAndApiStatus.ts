@@ -116,6 +116,7 @@ export function useNetworkAndApiStatus(): ConnectivityState {
     };
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: include browserOnline so a new run starts when connectivity changes; checkNow only depends on apiBase
   useEffect(() => {
     runIdRef.current += 1;
     const id = runIdRef.current;
@@ -124,7 +125,7 @@ export function useNetworkAndApiStatus(): ConnectivityState {
       abortRef.current?.abort();
       abortRef.current = null;
     };
-  }, [apiBase, browserOnline, checkNow]);
+  }, [checkNow, browserOnline]);
 
   useEffect(() => {
     if (!apiBase || !browserOnline) {

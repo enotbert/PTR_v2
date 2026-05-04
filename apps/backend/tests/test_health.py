@@ -28,7 +28,9 @@ def test_health_without_database_url(client: TestClient, monkeypatch: pytest.Mon
 
 
 @patch("app.main.psycopg.connect")
-def test_health_postgres_reachable(mock_connect: MagicMock, client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_postgres_reachable(
+    mock_connect: MagicMock, client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@postgres:5432/db")
     cm = MagicMock()
     conn = MagicMock()
