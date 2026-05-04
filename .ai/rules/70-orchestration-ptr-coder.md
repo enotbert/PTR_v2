@@ -46,7 +46,7 @@
 | Переменная | Назначение | Дефолт |
 |------------|------------|--------|
 | `PTR_CODER_BASE_URL` | Базовый URL API (`…/v1`) | `http://localhost:1234/v1` |
-| `PTR_CODER_MODEL` | Идентификатор модели на сервере | `gemma-4-26b-a4b-it` |
+| `PTR_CODER_MODEL` | Идентификатор модели на сервере | `qwen3-coder-30b-a3b-instruct` |
 | `PTR_CODER_API_KEY` | Строка для заголовка авторизации (у LM Studio часто произвольная) | `lm-studio` |
 
 ### Prerequisites (проверять перед каждым запуском)
@@ -65,7 +65,7 @@ POSIX:
 
 ```bash
 export PTR_CODER_BASE_URL="${PTR_CODER_BASE_URL:-http://localhost:1234/v1}"
-export PTR_CODER_MODEL="${PTR_CODER_MODEL:-gemma-4-26b-a4b-it}"
+export PTR_CODER_MODEL="${PTR_CODER_MODEL:-qwen3-coder-30b-a3b-instruct}"
 python -m ptr_coder \
   --handoff ".ai/handoffs/PTR-XXX-<kebab-slug>.md" \
   --root "." \
@@ -76,7 +76,7 @@ PowerShell:
 
 ```powershell
 $env:PTR_CODER_BASE_URL = if ($env:PTR_CODER_BASE_URL) { $env:PTR_CODER_BASE_URL } else { "http://localhost:1234/v1" }
-$env:PTR_CODER_MODEL     = if ($env:PTR_CODER_MODEL)     { $env:PTR_CODER_MODEL }     else { "gemma-4-26b-a4b-it" }
+$env:PTR_CODER_MODEL     = if ($env:PTR_CODER_MODEL)     { $env:PTR_CODER_MODEL }     else { "qwen3-coder-30b-a3b-instruct" }
 python -m ptr_coder --handoff ".ai/handoffs/PTR-XXX-<kebab-slug>.md" --root "." --max-iterations 32
 ```
 

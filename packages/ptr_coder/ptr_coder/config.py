@@ -20,6 +20,6 @@ def load_config() -> CoderConfig:
 
     return CoderConfig(
         base_url=os.environ.get("PTR_CODER_BASE_URL", "http://localhost:1234/v1"),
-        model=os.environ.get("PTR_CODER_MODEL", "gemma-4-26b-a4b-it"),
+        model=os.environ.get("PTR_CODER_MODEL", "qwen3-coder-30b-a3b-instruct"),
         api_key=os.environ.get("PTR_CODER_API_KEY", "lm-studio"),
     )
