@@ -5,11 +5,10 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import create_engine, pool
-
 import app.models.identity  # noqa: F401 — register models
+from alembic import context
 from app.models.base import Base
+from sqlalchemy import create_engine, pool
 
 config = context.config
 

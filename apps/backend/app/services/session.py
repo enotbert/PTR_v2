@@ -113,8 +113,4 @@ def resume_session(
             error="session_not_found",
             message="Session was not found.",
         )
-    return validate_and_touch_session(
-        db, row, last_ip=last_ip, last_user_agent=last_user_agent
-    )
-
-
+    return validate_and_touch_session(db, row, last_ip=last_ip, last_user_agent=last_user_agent)
