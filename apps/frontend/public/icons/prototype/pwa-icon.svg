@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Pocket Raid Tavern prototype icon</title>
+  <desc id="desc">Prototype emblem with tavern mug and technomagic runes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#22d3ee" stroke-width="12" opacity="0.7" />
+  <path d="M182 176h148c10 0 18 8 18 18v136c0 30-24 54-54 54h-58c-30 0-54-24-54-54V194c0-10 8-18 18-18z" fill="url(#amber)" />
+  <path d="M348 216h30c24 0 44 20 44 44s-20 44-44 44h-30" fill="none" stroke="#fbbf24" stroke-width="20" stroke-linecap="round" />
+  <path d="M210 146c0-20 16-36 36-36 8 0 16 3 22 8 7-16 23-28 42-28 26 0 48 22 48 48" fill="none" stroke="#f8fafc" stroke-width="14" stroke-linecap="round" />
+  <path d="M128 256h40M344 256h40M256 128v40M256 344v40" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" opacity="0.8" />
+</svg>

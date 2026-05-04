@@ -1,0 +1,19 @@
+{
+  "name": "Pocket Raid Tavern",
+  "short_name": "PRT",
+  "description": "Mobile-first raid shell for Pocket Raid Tavern.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#4f46e5",
+  "background_color": "#f1f5f9",
+  "icons": [
+    {
+      "src": "/icons/prototype/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
