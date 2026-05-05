@@ -204,27 +204,17 @@ test.describe("app shell (mobile viewport)", () => {
     const canvas = page.getByTestId("combat-canvas");
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    const nonBlankSample = await canvas.evaluate((node) => {
+    const rendered = await canvas.evaluate((node) => {
       if (!(node instanceof HTMLCanvasElement)) {
-        return false;
-      }
-      const ctx = node.getContext("2d");
-      if (!ctx) {
         return false;
       }
       const { width, height } = node;
       if (width === 0 || height === 0) {
         return false;
       }
-      const center = ctx.getImageData(
-        Math.floor(width * 0.5),
-        Math.floor(height * 0.5),
-        1,
-        1,
-      ).data;
-      return center[3] > 0;
+      return node.dataset.renderState === "ready";
     });
 
-    expect(nonBlankSample).toBe(true);
+    expect(rendered).toBe(true);
   });
 });

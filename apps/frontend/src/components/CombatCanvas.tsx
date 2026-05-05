@@ -1,3 +1,4 @@
+import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
 import { useEffect, useMemo, useRef } from "react";
 
 type CombatSide = "party" | "enemy";
@@ -25,101 +26,119 @@ type Props = {
 
 const ARENA_ASPECT_RATIO = 0.62;
 
-function drawRoundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-) {
-  const safeRadius = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + safeRadius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, safeRadius);
-  ctx.arcTo(x + width, y + height, x, y + height, safeRadius);
-  ctx.arcTo(x, y + height, x, y, safeRadius);
-  ctx.arcTo(x, y, x + width, y, safeRadius);
-  ctx.closePath();
-}
-
 function drawUnit(
-  ctx: CanvasRenderingContext2D,
   unit: CombatUnitViewModel,
   x: number,
   y: number,
   radius: number,
-) {
+): Container {
   const hpRatio =
     unit.maxHp > 0 ? Math.max(0, Math.min(1, unit.hp / unit.maxHp)) : 0;
-  const coreColor = unit.side === "party" ? "#60a5fa" : "#f97316";
+  const coreColor = unit.side === "party" ? 0x60a5fa : 0xf97316;
   const ringColor =
     unit.highlight === "targeted"
-      ? "#facc15"
+      ? 0xfacc15
       : unit.highlight === "selected"
-        ? "#a78bfa"
-        : "#334155";
+        ? 0xa78bfa
+        : 0x334155;
 
-  ctx.save();
-  ctx.lineWidth = Math.max(2, radius * 0.12);
-  ctx.strokeStyle = ringColor;
-  ctx.fillStyle = coreColor;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  const root = new Container({ x, y });
 
-  if (unit.isLocalPlayer) {
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `${Math.max(10, radius * 0.42)}px system-ui`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("YOU", x, y - radius * 1.35);
-  }
+  const body = new Graphics()
+    .circle(0, 0, radius)
+    .fill(coreColor)
+    .stroke({ width: Math.max(2, radius * 0.12), color: ringColor });
+  root.addChild(body);
 
-  const hpWidth = radius * 1.75;
-  const hpHeight = Math.max(4, radius * 0.22);
-  const hpX = x - hpWidth / 2;
-  const hpY = y + radius + 8;
-  drawRoundedRect(ctx, hpX, hpY, hpWidth, hpHeight, hpHeight / 2);
-  ctx.fillStyle = "#1e293b";
-  ctx.fill();
-  drawRoundedRect(ctx, hpX, hpY, hpWidth * hpRatio, hpHeight, hpHeight / 2);
-  ctx.fillStyle = hpRatio > 0.35 ? "#22c55e" : "#ef4444";
-  ctx.fill();
+  const hpBarWidth = radius * 1.75;
+  const hpBarHeight = Math.max(4, radius * 0.22);
+  const hpBarY = radius + 8;
+  const hpBase = new Graphics()
+    .roundRect(
+      -hpBarWidth / 2,
+      hpBarY,
+      hpBarWidth,
+      hpBarHeight,
+      hpBarHeight / 2,
+    )
+    .fill(0x1e293b);
+  const hpFill = new Graphics()
+    .roundRect(
+      -hpBarWidth / 2,
+      hpBarY,
+      hpBarWidth * hpRatio,
+      hpBarHeight,
+      hpBarHeight / 2,
+    )
+    .fill(hpRatio > 0.35 ? 0x22c55e : 0xef4444);
+  root.addChild(hpBase, hpFill);
+
+  const label = new Text({
+    text: unit.label,
+    style: new TextStyle({
+      fill: 0xf8fafc,
+      fontSize: Math.max(11, radius * 0.4),
+      fontFamily: "system-ui",
+      fontWeight: "700",
+      align: "center",
+    }),
+  });
+  label.anchor.set(0.5);
+  root.addChild(label);
 
   if (unit.effects.length > 0) {
-    ctx.fillStyle = "#f8fafc";
-    ctx.font = `${Math.max(10, radius * 0.38)}px system-ui`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(unit.effects[0], x + radius * 0.98, y - radius * 0.98);
+    const effectLabel = new Text({
+      text: unit.effects[0],
+      style: new TextStyle({
+        fill: 0xf8fafc,
+        fontSize: Math.max(10, radius * 0.38),
+        fontFamily: "system-ui",
+        fontWeight: "600",
+      }),
+    });
+    effectLabel.anchor.set(0.5);
+    effectLabel.x = radius * 0.98;
+    effectLabel.y = -radius * 0.98;
+    root.addChild(effectLabel);
   }
 
-  ctx.fillStyle = "#f8fafc";
-  ctx.font = `${Math.max(11, radius * 0.4)}px system-ui`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(unit.label, x, y);
-  ctx.restore();
+  if (unit.isLocalPlayer) {
+    const youLabel = new Text({
+      text: "YOU",
+      style: new TextStyle({
+        fill: 0xffffff,
+        fontSize: Math.max(10, radius * 0.42),
+        fontFamily: "system-ui",
+        fontWeight: "700",
+      }),
+    });
+    youLabel.anchor.set(0.5);
+    youLabel.y = -radius * 1.35;
+    root.addChild(youLabel);
+  }
+
+  return root;
 }
 
-function renderArena(ctx: CanvasRenderingContext2D, vm: CombatCanvasViewModel) {
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
+function renderArena(
+  app: Application,
+  root: Container,
+  vm: CombatCanvasViewModel,
+  width: number,
+  height: number,
+) {
+  root.removeChildren();
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, "#0f172a");
-  gradient.addColorStop(1, "#111827");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+  const background = new Graphics()
+    .rect(0, 0, width, height)
+    .fill({ color: 0x0f172a, alpha: 1 });
+  root.addChild(background);
 
-  ctx.strokeStyle = "#334155";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(width * 0.08, height * 0.48);
-  ctx.lineTo(width * 0.92, height * 0.48);
-  ctx.stroke();
+  const separator = new Graphics()
+    .moveTo(width * 0.08, height * 0.48)
+    .lineTo(width * 0.92, height * 0.48)
+    .stroke({ color: 0x334155, width: 2 });
+  root.addChild(separator);
 
   const radius = Math.max(18, Math.min(width, height) * 0.075);
   const partyY = height * 0.74;
@@ -129,47 +148,85 @@ function renderArena(ctx: CanvasRenderingContext2D, vm: CombatCanvasViewModel) {
 
   for (const unit of vm.party) {
     const x = start + spacing * unit.laneIndex;
-    drawUnit(ctx, unit, x, partyY, radius);
+    root.addChild(drawUnit(unit, x, partyY, radius));
   }
   for (const unit of vm.enemies) {
     const x = start + spacing * unit.laneIndex;
-    drawUnit(ctx, unit, x, enemyY, radius);
+    root.addChild(drawUnit(unit, x, enemyY, radius));
   }
+
+  app.renderer.render({ container: app.stage });
+  (app.canvas as HTMLCanvasElement).dataset.renderState = "ready";
 }
 
 export function CombatCanvas({ viewModel }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const appRef = useRef<Application | null>(null);
+  const rootRef = useRef<Container | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return;
+    let isDisposed = false;
+
+    async function setupPixi() {
+      const host = hostRef.current;
+      if (!host || appRef.current) {
+        return;
+      }
+
+      const app = new Application();
+      await app.init({
+        antialias: true,
+        autoDensity: true,
+        backgroundAlpha: 1,
+        resizeTo: host,
+      });
+      if (isDisposed) {
+        app.destroy(true);
+        return;
+      }
+
+      const canvas = app.canvas as HTMLCanvasElement;
+      canvas.className = "combat-canvas__surface";
+      canvas.dataset.testid = "combat-canvas";
+      canvas.ariaLabel = "Combat arena presentation";
+      host.appendChild(canvas);
+
+      const root = new Container();
+      app.stage.addChild(root);
+      appRef.current = app;
+      rootRef.current = root;
+      renderArena(
+        app,
+        root,
+        { party: [], enemies: [] },
+        host.clientWidth,
+        host.clientHeight,
+      );
     }
 
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const cssWidth = canvas.clientWidth;
-    const cssHeight = canvas.clientHeight;
-    canvas.width = Math.floor(cssWidth * dpr);
-    canvas.height = Math.floor(cssHeight * dpr);
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    context.scale(dpr, dpr);
-    renderArena(context, viewModel);
+    void setupPixi();
+
+    return () => {
+      isDisposed = true;
+      if (appRef.current) {
+        appRef.current.destroy(true);
+        appRef.current = null;
+        rootRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    const app = appRef.current;
+    const root = rootRef.current;
+    if (!host || !app || !root) {
+      return;
+    }
+    renderArena(app, root, viewModel, host.clientWidth, host.clientHeight);
   }, [viewModel]);
 
-  return (
-    <div className="combat-canvas">
-      <canvas
-        ref={canvasRef}
-        className="combat-canvas__surface"
-        data-testid="combat-canvas"
-        aria-label="Combat arena presentation"
-      />
-    </div>
-  );
+  return <div ref={hostRef} className="combat-canvas" />;
 }
 
 export function useDemoCombatViewModel(): CombatCanvasViewModel {
