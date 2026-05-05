@@ -139,4 +139,53 @@ test.describe("app shell (mobile viewport)", () => {
       /\+25 from raid reward/i,
     );
   });
+
+  test("creates first tutorial raid setup and enables next CTA", async ({
+    page,
+  }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+    await mockTavernState(page);
+
+    let raidCreateBody: Record<string, unknown> | null = null;
+    await page.route("**/v1/raids", async (route) => {
+      const req = route.request();
+      raidCreateBody = req.postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "00000000-0000-0000-0000-000000000777",
+          party_id: "00000000-0000-0000-0000-000000000222",
+          raid_template_id: "tutorial_solo_v1",
+          status: "pending",
+        }),
+      });
+    });
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("primary-cta")).toBeEnabled({
+      timeout: 15_000,
+    });
+
+    await page.getByTestId("primary-cta").click();
+
+    await expect(page.getByTestId("first-session-message")).toContainText(
+      /first raid setup is ready/i,
+    );
+    await expect(page.getByTestId("first-session-raid-id")).toContainText(
+      /00000000-0000-0000-0000-000000000777/i,
+    );
+    await expect(page.getByTestId("next-cta")).toBeEnabled();
+
+    expect(raidCreateBody).toEqual({
+      raid_template_id: "tutorial_solo_v1",
+      tavern_id: "00000000-0000-0000-0000-000000000001",
+    });
+  });
 });
