@@ -156,13 +156,20 @@ function renderArena(
   }
 
   app.renderer.render({ container: app.stage });
-  (app.canvas as HTMLCanvasElement).dataset.renderState = "ready";
+  const canvas = app.canvas as HTMLCanvasElement;
+  canvas.dataset.renderState = "ready";
+  canvas.dataset.unitCount = String(vm.party.length + vm.enemies.length);
 }
 
 export function CombatCanvas({ viewModel }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const rootRef = useRef<Container | null>(null);
+  const viewModelRef = useRef<CombatCanvasViewModel>(viewModel);
+
+  useEffect(() => {
+    viewModelRef.current = viewModel;
+  }, [viewModel]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -198,7 +205,7 @@ export function CombatCanvas({ viewModel }: Props) {
       renderArena(
         app,
         root,
-        { party: [], enemies: [] },
+        viewModelRef.current,
         host.clientWidth,
         host.clientHeight,
       );

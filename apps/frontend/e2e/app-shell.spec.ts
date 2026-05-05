@@ -204,17 +204,21 @@ test.describe("app shell (mobile viewport)", () => {
     const canvas = page.getByTestId("combat-canvas");
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    const rendered = await canvas.evaluate((node) => {
+    const renderMeta = await canvas.evaluate((node) => {
       if (!(node instanceof HTMLCanvasElement)) {
-        return false;
+        return { rendered: false, unitCount: 0 };
       }
       const { width, height } = node;
       if (width === 0 || height === 0) {
-        return false;
+        return { rendered: false, unitCount: 0 };
       }
-      return node.dataset.renderState === "ready";
+      return {
+        rendered: node.dataset.renderState === "ready",
+        unitCount: Number.parseInt(node.dataset.unitCount ?? "0", 10),
+      };
     });
 
-    expect(rendered).toBe(true);
+    expect(renderMeta.rendered).toBe(true);
+    expect(renderMeta.unitCount).toBeGreaterThanOrEqual(6);
   });
 });
