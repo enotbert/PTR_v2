@@ -218,7 +218,7 @@ test.describe("app shell (mobile viewport)", () => {
     expect(rendered).toBe(true);
   });
 
-  test("renders combat HUD skill states and feedback interaction", async ({
+  test("supports target selection flow with valid and invalid feedback", async ({
     page,
   }) => {
     await page.route("**/health", async (route) => {
@@ -235,18 +235,41 @@ test.describe("app shell (mobile viewport)", () => {
     await expect(page.getByTestId("combat-skill-bar")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByTestId("combat-target-hint")).toContainText(
-      /out of lane range/i,
+    await expect(page.getByTestId("combat-target")).toContainText(
+      /no target selected/i,
     );
 
     await expect(page.getByTestId("combat-skill-quick-shot")).toBeEnabled();
-    await expect(page.getByTestId("combat-skill-heavy-slash")).toBeDisabled();
+    await expect(page.getByTestId("combat-skill-heavy-slash")).toBeEnabled();
     await expect(page.getByTestId("combat-skill-focus-stance")).toBeDisabled();
 
-    await page.getByTestId("combat-skill-quick-shot").click();
-    await expect(page.getByTestId("combat-feedback")).toContainText(
-      /quick shot used on sentry/i,
+    const canvas = page.getByTestId("combat-canvas");
+    await expect(canvas).toBeVisible();
+
+    await page.getByTestId("combat-skill-heavy-slash").click();
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) {
+      throw new Error("combat canvas bounding box is missing");
+    }
+
+    await canvas.click({
+      position: { x: box.width * 0.2, y: box.height * 0.22 },
+    });
+    await expect(page.getByTestId("combat-target-hint")).toContainText(
+      /cannot reach that target/i,
     );
-    await expect(page.getByTestId("combat-resource")).toContainText(/3$/);
+    await expect(page.getByTestId("combat-feedback")).toContainText(
+      /invalid target for heavy slash/i,
+    );
+
+    await canvas.click({
+      position: { x: box.width * 0.2, y: box.height * 0.74 },
+    });
+    await expect(page.getByTestId("combat-feedback")).toContainText(
+      /heavy slash used on vg/i,
+    );
+    await expect(page.getByTestId("combat-resource")).toContainText(/1$/);
+    await expect(page.getByTestId("combat-skill-quick-shot")).toBeDisabled();
   });
 });
