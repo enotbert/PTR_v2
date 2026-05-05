@@ -38,6 +38,15 @@ def _create_party(client: TestClient, session_id: uuid.UUID, role_id: str) -> st
     return created.json()["id"]
 
 
+def _join_party(client: TestClient, party_id: str, session_id: uuid.UUID, role_id: str) -> None:
+    joined = client.post(
+        f"/v1/parties/{party_id}/join",
+        headers={"Authorization": f"Bearer {session_id}"},
+        json={"role_id": role_id},
+    )
+    assert joined.status_code == 200
+
+
 def _command(
     command_id: str, room_id: str, actor_id: str, skill_id: str, target_id: str
 ) -> dict[str, object]:
@@ -169,3 +178,72 @@ def test_battle_ws_duplicate_and_conflict(session_client: TestClient, db_session
         err = ws.receive_json()
         assert err["type"] == "command.error"
         assert err["payload"]["code"] == "IDEMPOTENCY_CONFLICT"
+
+
+def test_battle_ws_broadcasts_event_to_all_room_participants(
+    session_client: TestClient, db_session
+) -> None:
+    owner_id, owner_session = _make_player_with_session(db_session, "BattleLeader")
+    _, joiner_session = _make_player_with_session(db_session, "BattleJoiner")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    _join_party(session_client, room_id, joiner_session, "signal_bard")
+    actor_id = f"player:{owner_id}"
+
+    owner_path = f"/v1/ws/battles/{room_id}?session_id={owner_session}"
+    joiner_path = f"/v1/ws/battles/{room_id}?session_id={joiner_session}"
+    with (
+        session_client.websocket_connect(owner_path) as ws_owner,
+        session_client.websocket_connect(joiner_path) as ws_joiner,
+    ):
+        ws_owner.receive_json()
+        ws_joiner.receive_json()
+
+        ws_owner.send_json(
+            _command(
+                command_id="cmd-broadcast",
+                room_id=room_id,
+                actor_id=actor_id,
+                skill_id="vanguard_strike",
+                target_id="enemy:rustbound_striker",
+            )
+        )
+
+        owner_event = ws_owner.receive_json()
+        owner_result = ws_owner.receive_json()
+        joiner_event = ws_joiner.receive_json()
+        assert owner_event["type"] == "battle.event"
+        assert joiner_event["type"] == "battle.event"
+        assert owner_event["server_seq"] == joiner_event["server_seq"]
+        assert owner_result["type"] == "command.result"
+
+
+def test_battle_ws_reconnect_receives_fresh_snapshot(
+    session_client: TestClient, db_session
+) -> None:
+    player_id, session_id = _make_player_with_session(db_session, "BattleReconnect")
+    db_session.commit()
+    room_id = _create_party(session_client, session_id, "vanguard")
+    actor_id = f"player:{player_id}"
+
+    first_snapshot_seq = 0
+    ws_path = f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    with session_client.websocket_connect(ws_path) as ws:
+        first_snapshot = ws.receive_json()
+        first_snapshot_seq = first_snapshot["server_seq"]
+        ws.send_json(
+            _command(
+                command_id="cmd-before-reconnect",
+                room_id=room_id,
+                actor_id=actor_id,
+                skill_id="vanguard_strike",
+                target_id="enemy:rustbound_striker",
+            )
+        )
+        ws.receive_json()
+        ws.receive_json()
+
+    with session_client.websocket_connect(ws_path) as ws_reconnect:
+        reconnect_snapshot = ws_reconnect.receive_json()
+        assert reconnect_snapshot["type"] == "battle.snapshot"
+        assert reconnect_snapshot["server_seq"] > first_snapshot_seq
