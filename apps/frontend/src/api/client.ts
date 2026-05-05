@@ -7,3 +7,12 @@ export function createApiClient(baseUrl: string) {
   const normalized = baseUrl.trim().replace(/\/+$/, "");
   return createClient<paths>({ baseUrl: normalized });
 }
+
+/** Session-authenticated client (Bearer `session_id`). */
+export function createBearerApiClient(baseUrl: string, sessionId: string) {
+  const normalized = baseUrl.trim().replace(/\/+$/, "");
+  return createClient<paths>({
+    baseUrl: normalized,
+    headers: { Authorization: `Bearer ${sessionId}` },
+  });
+}
