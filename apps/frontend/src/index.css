@@ -111,6 +111,10 @@ body {
   color: #64748b;
 }
 
+.tavern-home__status--error {
+  color: #991b1b;
+}
+
 /* Touch-friendly primary actions; no hover-only affordances */
 .btn {
   display: inline-flex;
@@ -140,6 +144,21 @@ body {
 
 .btn--primary:not(:disabled):active {
   filter: brightness(0.95);
+}
+
+.btn--secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn--secondary:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.btn--secondary:not(:disabled):active {
+  filter: brightness(0.96);
 }
 
 .tavern-card {

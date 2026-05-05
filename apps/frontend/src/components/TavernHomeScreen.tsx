@@ -1,9 +1,30 @@
+import { useCallback, useState } from "react";
+import { createApiClient } from "../api/client";
+import type { components } from "../generated/api-types";
 import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
 import { useTavernHomeState } from "../hooks/useTavernHomeState";
 
 type Props = {
   connectivity: ConnectivityState;
 };
+
+type RaidDetail = components["schemas"]["RaidDetailOut"];
+
+type EntryState =
+  | { status: "idle"; message: string | null }
+  | { status: "creating"; message: string }
+  | { status: "error"; message: string }
+  | { status: "ready"; message: string; raid: RaidDetail };
+
+const DEFAULT_TAVERN_ID = "00000000-0000-0000-0000-000000000001";
+
+function getApiBase(): string {
+  return import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
+}
+
+function getTavernId(): string {
+  return import.meta.env.VITE_TAVERN_ID?.trim() || DEFAULT_TAVERN_ID;
+}
 
 function formatTime(value: string | null | undefined): string {
   if (!value) {
@@ -25,6 +46,63 @@ function formatSource(source: string | null | undefined): string {
 
 export function TavernHomeScreen({ connectivity }: Props) {
   const home = useTavernHomeState(connectivity);
+  const [entry, setEntry] = useState<EntryState>({
+    status: "idle",
+    message: null,
+  });
+
+  const handleStartFirstRaid = useCallback(async () => {
+    if (home.status !== "ready") {
+      return;
+    }
+
+    const apiBase = getApiBase();
+    if (!apiBase) {
+      setEntry({
+        status: "error",
+        message:
+          "Gameplay API is not configured. Cannot create the first raid session.",
+      });
+      return;
+    }
+
+    setEntry({
+      status: "creating",
+      message: "Creating first tutorial raid session…",
+    });
+
+    const client = createApiClient(apiBase);
+    try {
+      const { data, error, response } = await client.POST("/v1/raids", {
+        body: {
+          raid_template_id: "tutorial_solo_v1",
+          tavern_id: getTavernId(),
+        },
+      });
+
+      if (error || !response?.ok || !data) {
+        setEntry({
+          status: "error",
+          message:
+            "Unable to create first raid setup right now. Please retry in a moment.",
+        });
+        return;
+      }
+
+      setEntry({
+        status: "ready",
+        message:
+          "First raid setup is ready. Continue to combat when you are ready.",
+        raid: data,
+      });
+    } catch {
+      setEntry({
+        status: "error",
+        message:
+          "Unable to create first raid setup right now. Please retry in a moment.",
+      });
+    }
+  }, [home.status]);
 
   if (home.status === "blocked") {
     return (
@@ -109,9 +187,72 @@ export function TavernHomeScreen({ connectivity }: Props) {
         type="button"
         className="btn btn--primary"
         data-testid="primary-cta"
+        onClick={() => {
+          void handleStartFirstRaid();
+        }}
+        disabled={entry.status === "creating"}
       >
-        Start first raid
+        {entry.status === "creating"
+          ? "Preparing first raid…"
+          : "Start first raid"}
       </button>
+
+      <article className="tavern-card" data-testid="first-session-setup">
+        <h2 className="tavern-card__title">First raid setup</h2>
+        <p className="tavern-card__meta">
+          Default role: <strong>Vanguard</strong>
+        </p>
+        <p className="tavern-card__meta">
+          Starter loadout focuses on steady damage and survivability for a first
+          solo encounter.
+        </p>
+        {entry.message ? (
+          <p
+            className={
+              entry.status === "error"
+                ? "tavern-home__status tavern-home__status--error"
+                : "tavern-home__status"
+            }
+            data-testid="first-session-message"
+          >
+            {entry.message}
+          </p>
+        ) : (
+          <p
+            className="tavern-home__status"
+            data-testid="first-session-message"
+          >
+            Start the setup to begin a short tutorial solo raid before combat.
+          </p>
+        )}
+        {entry.status === "ready" ? (
+          <>
+            <p
+              className="tavern-card__meta"
+              data-testid="first-session-raid-id"
+            >
+              Raid ID: {entry.raid.id}
+            </p>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="next-cta"
+            >
+              Continue to combat
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            data-testid="next-cta"
+            disabled
+            aria-disabled="true"
+          >
+            Continue to combat
+          </button>
+        )}
+      </article>
 
       <article className="tavern-card" data-testid="tavern-project">
         <h2 className="tavern-card__title">Current project</h2>
