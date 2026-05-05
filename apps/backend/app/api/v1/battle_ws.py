@@ -54,6 +54,7 @@ class BattleRoom:
     entities: dict[str, combat_engine.BattleSnapshotEntity]
     entity_teams: dict[str, str]
     player_actor_map: dict[str, str]
+    connections: set[WebSocket]
 
 
 class BattleWsStore:
@@ -101,9 +102,29 @@ class BattleWsStore:
                 entities=entities,
                 entity_teams=entity_teams,
                 player_actor_map=player_actor_map,
+                connections=set(),
             )
             self._rooms[room_id] = room
             return room
+
+    async def add_connection(self, room_id: str, websocket: WebSocket) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if room is not None:
+                room.connections.add(websocket)
+
+    async def remove_connection(self, room_id: str, websocket: WebSocket) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if room is not None:
+                room.connections.discard(websocket)
+
+    async def room_connections(self, room_id: str) -> list[WebSocket]:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if room is None:
+                return []
+            return list(room.connections)
 
 
 STORE = BattleWsStore()
@@ -226,6 +247,17 @@ def _snapshot(
     }
 
 
+async def _broadcast_room_message(room_id: str, message: dict[str, Any]) -> None:
+    disconnected: list[WebSocket] = []
+    for ws in await STORE.room_connections(room_id):
+        try:
+            await ws.send_json(message)
+        except RuntimeError:
+            disconnected.append(ws)
+    for ws in disconnected:
+        await STORE.remove_connection(room_id, ws)
+
+
 @router.websocket("/ws/battles/{battle_id}")
 async def battle_room_ws(
     websocket: WebSocket,
@@ -243,6 +275,7 @@ async def battle_room_ws(
         return
 
     room = await STORE.get_or_create(battle_id, members)
+    await STORE.add_connection(battle_id, websocket)
     raid_lead_player_id = str(
         next((m.player_id for m in members if m.is_raid_lead), members[0].player_id)
     )
@@ -257,6 +290,7 @@ async def battle_room_ws(
         try:
             message = await websocket.receive_json()
         except WebSocketDisconnect:
+            await STORE.remove_connection(battle_id, websocket)
             break
 
         kind = message.get("kind")
@@ -400,7 +434,8 @@ async def battle_room_ws(
             },
         )
         db.commit()
-        await websocket.send_json(
+        await _broadcast_room_message(
+            battle_id,
             {
                 "protocol": PROTOCOL,
                 "kind": "event",
@@ -409,7 +444,7 @@ async def battle_room_ws(
                 "server_seq": event_seq,
                 "sent_at": _iso_now(),
                 "payload": resolution.event_payload,
-            }
+            },
         )
         result_seq = room.state.issue_server_seq()
         await websocket.send_json(
