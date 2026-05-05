@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 type CombatSide = "party" | "enemy";
 
-type CombatUnitViewModel = {
+export type CombatUnitViewModel = {
   id: string;
   label: string;
   side: CombatSide;
@@ -15,22 +15,67 @@ type CombatUnitViewModel = {
   isLocalPlayer?: boolean;
 };
 
-type CombatCanvasViewModel = {
+export type CombatCanvasViewModel = {
   party: CombatUnitViewModel[];
   enemies: CombatUnitViewModel[];
 };
 
 type Props = {
   viewModel: CombatCanvasViewModel;
+  onUnitTap?: (unit: CombatUnitViewModel) => void;
 };
 
 const ARENA_ASPECT_RATIO = 0.62;
+
+function pickUnitFromPoint(
+  vm: CombatCanvasViewModel,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): CombatUnitViewModel | null {
+  const radius = Math.max(18, Math.min(width, height) * 0.075);
+  const spacing = width / 4;
+  const start = width * 0.2;
+  const placements: Array<{ unit: CombatUnitViewModel; x: number; y: number }> =
+    [];
+  for (const unit of vm.party) {
+    placements.push({
+      unit,
+      x: start + spacing * unit.laneIndex,
+      y: height * 0.74,
+    });
+  }
+  for (const unit of vm.enemies) {
+    placements.push({
+      unit,
+      x: start + spacing * unit.laneIndex,
+      y: height * 0.22,
+    });
+  }
+  let nearest: (typeof placements)[number] | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const placement of placements) {
+    const dx = placement.x - x;
+    const dy = placement.y - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = placement;
+    }
+  }
+  if (!nearest || nearestDistance > radius * 2) {
+    return null;
+  }
+  return nearest.unit;
+}
 
 function drawUnit(
   unit: CombatUnitViewModel,
   x: number,
   y: number,
   radius: number,
+  onUnitTap?: (unit: CombatUnitViewModel) => void,
 ): Container {
   const hpRatio =
     unit.maxHp > 0 ? Math.max(0, Math.min(1, unit.hp / unit.maxHp)) : 0;
@@ -49,6 +94,14 @@ function drawUnit(
     .fill(coreColor)
     .stroke({ width: Math.max(2, radius * 0.12), color: ringColor });
   root.addChild(body);
+  if (onUnitTap) {
+    body.eventMode = "static";
+    body.cursor = "pointer";
+    body.on("pointertap", (event: import("pixi.js").FederatedPointerEvent) => {
+      event.stopPropagation();
+      onUnitTap(unit);
+    });
+  }
 
   const hpBarWidth = radius * 1.75;
   const hpBarHeight = Math.max(4, radius * 0.22);
@@ -126,12 +179,38 @@ function renderArena(
   vm: CombatCanvasViewModel,
   width: number,
   height: number,
+  onUnitTap?: (unit: CombatUnitViewModel) => void,
 ) {
   root.removeChildren();
+  const placements: Array<{ unit: CombatUnitViewModel; x: number; y: number }> =
+    [];
 
   const background = new Graphics()
     .rect(0, 0, width, height)
     .fill({ color: 0x0f172a, alpha: 1 });
+  if (onUnitTap) {
+    background.eventMode = "static";
+    background.on(
+      "pointertap",
+      (event: import("pixi.js").FederatedPointerEvent) => {
+        const point = event.getLocalPosition(root);
+        let nearest: (typeof placements)[number] | null = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        for (const placement of placements) {
+          const dx = placement.x - point.x;
+          const dy = placement.y - point.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = placement;
+          }
+        }
+        if (nearest && nearestDistance <= radius * 2) {
+          onUnitTap(nearest.unit);
+        }
+      },
+    );
+  }
   root.addChild(background);
 
   const separator = new Graphics()
@@ -148,19 +227,21 @@ function renderArena(
 
   for (const unit of vm.party) {
     const x = start + spacing * unit.laneIndex;
-    root.addChild(drawUnit(unit, x, partyY, radius));
+    placements.push({ unit, x, y: partyY });
+    root.addChild(drawUnit(unit, x, partyY, radius, onUnitTap));
   }
   for (const unit of vm.enemies) {
     const x = start + spacing * unit.laneIndex;
-    root.addChild(drawUnit(unit, x, enemyY, radius));
+    placements.push({ unit, x, y: enemyY });
+    root.addChild(drawUnit(unit, x, enemyY, radius, onUnitTap));
   }
 
   app.renderer.render({ container: app.stage });
   (app.canvas as HTMLCanvasElement).dataset.renderState = "ready";
 }
 
-export function CombatCanvas({ viewModel }: Props) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
+export function CombatCanvas({ viewModel, onUnitTap }: Props) {
+  const hostRef = useRef<HTMLButtonElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const rootRef = useRef<Container | null>(null);
 
@@ -201,6 +282,7 @@ export function CombatCanvas({ viewModel }: Props) {
         { party: [], enemies: [] },
         host.clientWidth,
         host.clientHeight,
+        onUnitTap,
       );
     }
 
@@ -214,7 +296,7 @@ export function CombatCanvas({ viewModel }: Props) {
         rootRef.current = null;
       }
     };
-  }, []);
+  }, [onUnitTap]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -223,13 +305,77 @@ export function CombatCanvas({ viewModel }: Props) {
     if (!host || !app || !root) {
       return;
     }
-    renderArena(app, root, viewModel, host.clientWidth, host.clientHeight);
-  }, [viewModel]);
+    renderArena(
+      app,
+      root,
+      viewModel,
+      host.clientWidth,
+      host.clientHeight,
+      onUnitTap,
+    );
+  }, [onUnitTap, viewModel]);
 
-  return <div ref={hostRef} className="combat-canvas" />;
+  const handleCanvasInteraction = (
+    clientX: number,
+    clientY: number,
+  ): CombatUnitViewModel | null => {
+    const host = hostRef.current;
+    if (!host) {
+      return null;
+    }
+    const rect = host.getBoundingClientRect();
+    return pickUnitFromPoint(
+      viewModel,
+      clientX - rect.left,
+      clientY - rect.top,
+      rect.width,
+      rect.height,
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      ref={hostRef}
+      className="combat-canvas"
+      aria-label="Combat arena interactive preview"
+      onClick={(event) => {
+        if (!onUnitTap) {
+          return;
+        }
+        const picked = handleCanvasInteraction(event.clientX, event.clientY);
+        if (picked) {
+          onUnitTap(picked);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (!onUnitTap || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+        const host = hostRef.current;
+        if (!host) {
+          return;
+        }
+        const rect = host.getBoundingClientRect();
+        const picked = pickUnitFromPoint(
+          viewModel,
+          rect.left + rect.width * 0.2,
+          rect.top + rect.height * 0.22,
+          rect.width,
+          rect.height,
+        );
+        if (picked) {
+          onUnitTap(picked);
+          event.preventDefault();
+        }
+      }}
+    />
+  );
 }
 
-export function useDemoCombatViewModel(): CombatCanvasViewModel {
+export function useDemoCombatViewModel(
+  selectedTargetId: string | null = "enemy-sentry",
+): CombatCanvasViewModel {
   return useMemo(
     () => ({
       party: [
@@ -241,7 +387,8 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: ["S"],
           laneIndex: 0,
-          highlight: "selected",
+          highlight:
+            selectedTargetId === "party-vanguard" ? "targeted" : "selected",
         },
         {
           id: "party-ranger",
@@ -251,7 +398,7 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: ["B"],
           laneIndex: 1,
-          highlight: "none",
+          highlight: selectedTargetId === "party-ranger" ? "targeted" : "none",
           isLocalPlayer: true,
         },
         {
@@ -262,7 +409,7 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: ["H"],
           laneIndex: 2,
-          highlight: "none",
+          highlight: selectedTargetId === "party-medic" ? "targeted" : "none",
         },
       ],
       enemies: [
@@ -274,7 +421,7 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: [],
           laneIndex: 0,
-          highlight: "targeted",
+          highlight: selectedTargetId === "enemy-sentry" ? "targeted" : "none",
         },
         {
           id: "enemy-caster",
@@ -284,7 +431,7 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: ["!"],
           laneIndex: 1,
-          highlight: "none",
+          highlight: selectedTargetId === "enemy-caster" ? "targeted" : "none",
         },
         {
           id: "enemy-brute",
@@ -294,11 +441,11 @@ export function useDemoCombatViewModel(): CombatCanvasViewModel {
           maxHp: 100,
           effects: [],
           laneIndex: 2,
-          highlight: "none",
+          highlight: selectedTargetId === "enemy-brute" ? "targeted" : "none",
         },
       ],
     }),
-    [],
+    [selectedTargetId],
   );
 }
 

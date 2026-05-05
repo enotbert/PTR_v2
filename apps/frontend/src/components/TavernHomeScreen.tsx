@@ -5,6 +5,7 @@ import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
 import { useTavernHomeState } from "../hooks/useTavernHomeState";
 import {
   CombatCanvas,
+  type CombatUnitViewModel,
   combatCanvasAspectRatio,
   useDemoCombatViewModel,
 } from "./CombatCanvas";
@@ -27,6 +28,27 @@ type EntryState =
   | { status: "ready"; message: string; raid: RaidDetail };
 
 const DEFAULT_TAVERN_ID = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_FEEDBACK = "Select a skill, then tap a target in the arena.";
+
+type SkillTargetRule = {
+  allowedSides: Array<"party" | "enemy">;
+  invalidReason: string;
+};
+
+const SKILL_TARGET_RULES: Record<string, SkillTargetRule> = {
+  "quick-shot": {
+    allowedSides: ["enemy"],
+    invalidReason: "Quick Shot can only target enemies.",
+  },
+  "heavy-slash": {
+    allowedSides: ["party"],
+    invalidReason: "Heavy Slash is lane-locked and cannot reach that target.",
+  },
+  "focus-stance": {
+    allowedSides: ["party", "enemy"],
+    invalidReason: "Focus Stance does not require a target right now.",
+  },
+};
 
 function getApiBase(): string {
   return import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
@@ -56,26 +78,38 @@ function formatSource(source: string | null | undefined): string {
 
 export function TavernHomeScreen({ connectivity }: Props) {
   const home = useTavernHomeState(connectivity);
-  const combatViewModel = useDemoCombatViewModel();
-  const [resource, setResource] = useState(5);
-  const [feedback, setFeedback] = useState(
-    "Select a skill to see combat feedback.",
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [invalidTargetReason, setInvalidTargetReason] = useState<string | null>(
+    null,
   );
+  const combatViewModel = useDemoCombatViewModel(selectedTargetId);
+  const [resource, setResource] = useState(5);
+  const [feedback, setFeedback] = useState(DEFAULT_FEEDBACK);
   const [entry, setEntry] = useState<EntryState>({
     status: "idle",
     message: null,
   });
-  const demoTarget: CombatTargetViewModel = useMemo(
-    () => ({
-      id: "enemy-sentry",
-      label: "Sentry",
-      hp: 44,
-      maxHp: 100,
-      canBeTargeted: false,
-      invalidReason: "Target is out of lane range for melee skill.",
-    }),
-    [],
+  const selectedTarget = useMemo(
+    () =>
+      [...combatViewModel.party, ...combatViewModel.enemies].find(
+        (unit) => unit.id === selectedTargetId,
+      ) ?? null,
+    [combatViewModel.enemies, combatViewModel.party, selectedTargetId],
   );
+  const demoTarget: CombatTargetViewModel | null = useMemo(() => {
+    if (!selectedTarget) {
+      return null;
+    }
+    return {
+      id: selectedTarget.id,
+      label: selectedTarget.label,
+      hp: selectedTarget.hp,
+      maxHp: selectedTarget.maxHp,
+      canBeTargeted: !invalidTargetReason,
+      invalidReason: invalidTargetReason ?? undefined,
+    };
+  }, [invalidTargetReason, selectedTarget]);
   const demoSkills: CombatSkillViewModel[] = useMemo(
     () => [
       {
@@ -91,8 +125,7 @@ export function TavernHomeScreen({ connectivity }: Props) {
         label: "Heavy Slash",
         resourceCost: 4,
         cooldownRemainingMs: 0,
-        state: demoTarget.canBeTargeted ? "ready" : "invalid-target",
-        reason: demoTarget.invalidReason,
+        state: "ready",
       },
       {
         id: "focus-stance",
@@ -103,7 +136,7 @@ export function TavernHomeScreen({ connectivity }: Props) {
         reason: "Cooling down.",
       },
     ],
-    [demoTarget.canBeTargeted, demoTarget.invalidReason, resource],
+    [resource],
   );
 
   const handleStartFirstRaid = useCallback(async () => {
@@ -169,10 +202,52 @@ export function TavernHomeScreen({ connectivity }: Props) {
         setFeedback(skill.reason ?? "This skill is unavailable right now.");
         return;
       }
-      setResource((current) => Math.max(0, current - skill.resourceCost));
-      setFeedback(`${skill.label} used on ${demoTarget.label}.`);
+      setSelectedSkillId(skill.id);
+      setInvalidTargetReason(null);
+      setFeedback(`Selected ${skill.label}. Tap a target in the arena.`);
     },
-    [demoSkills, demoTarget.label],
+    [demoSkills],
+  );
+
+  const handleTargetTap = useCallback(
+    (unit: CombatUnitViewModel) => {
+      if (!selectedSkillId) {
+        setSelectedTargetId(unit.id);
+        setInvalidTargetReason(null);
+        setFeedback("Target selected. Choose a skill to continue.");
+        return;
+      }
+
+      const skill = demoSkills.find((value) => value.id === selectedSkillId);
+      const rule = SKILL_TARGET_RULES[selectedSkillId];
+      if (!skill || !rule) {
+        setFeedback("Selected skill is not available anymore.");
+        setSelectedSkillId(null);
+        return;
+      }
+
+      setSelectedTargetId(unit.id);
+      if (!rule.allowedSides.includes(unit.side)) {
+        setInvalidTargetReason(rule.invalidReason);
+        setFeedback(`Invalid target for ${skill.label}. Choose another one.`);
+        return;
+      }
+
+      setInvalidTargetReason(null);
+      setResource((current) => Math.max(0, current - skill.resourceCost));
+      setFeedback(`${skill.label} used on ${unit.label}.`);
+      window.dispatchEvent(
+        new CustomEvent("skill_target_selected", {
+          detail: {
+            skillId: skill.id,
+            targetId: unit.id,
+            targetSide: unit.side,
+          },
+        }),
+      );
+      setSelectedSkillId(null);
+    },
+    [demoSkills, selectedSkillId],
   );
 
   if (home.status === "blocked") {
@@ -386,7 +461,10 @@ export function TavernHomeScreen({ connectivity }: Props) {
           Visual authority only: combat decisions stay on backend side.
         </p>
         <div style={{ aspectRatio: `${1 / combatCanvasAspectRatio}` }}>
-          <CombatCanvas viewModel={combatViewModel} />
+          <CombatCanvas
+            viewModel={combatViewModel}
+            onUnitTap={handleTargetTap}
+          />
         </div>
       </article>
 
