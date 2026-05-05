@@ -3,6 +3,11 @@ import { createApiClient } from "../api/client";
 import type { components } from "../generated/api-types";
 import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
 import { useTavernHomeState } from "../hooks/useTavernHomeState";
+import {
+  CombatCanvas,
+  combatCanvasAspectRatio,
+  useDemoCombatViewModel,
+} from "./CombatCanvas";
 
 type Props = {
   connectivity: ConnectivityState;
@@ -46,6 +51,7 @@ function formatSource(source: string | null | undefined): string {
 
 export function TavernHomeScreen({ connectivity }: Props) {
   const home = useTavernHomeState(connectivity);
+  const combatViewModel = useDemoCombatViewModel();
   const [entry, setEntry] = useState<EntryState>({
     status: "idle",
     message: null,
@@ -304,6 +310,19 @@ export function TavernHomeScreen({ connectivity }: Props) {
             No events yet. Complete your first raid.
           </p>
         )}
+      </article>
+
+      <article className="tavern-card" data-testid="combat-canvas-card">
+        <h2 className="tavern-card__title">Combat arena preview</h2>
+        <p className="tavern-card__meta">
+          Presentation-only canvas view model for party and enemy formation.
+        </p>
+        <p className="tavern-card__meta">
+          Visual authority only: combat decisions stay on backend side.
+        </p>
+        <div style={{ aspectRatio: `${1 / combatCanvasAspectRatio}` }}>
+          <CombatCanvas viewModel={combatViewModel} />
+        </div>
       </article>
     </section>
   );

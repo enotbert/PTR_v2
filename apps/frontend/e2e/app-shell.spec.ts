@@ -188,4 +188,33 @@ test.describe("app shell (mobile viewport)", () => {
       tavern_id: "00000000-0000-0000-0000-000000000001",
     });
   });
+
+  test("renders nonblank combat canvas preview", async ({ page }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+    await mockTavernState(page);
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const canvas = page.getByTestId("combat-canvas");
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+
+    const rendered = await canvas.evaluate((node) => {
+      if (!(node instanceof HTMLCanvasElement)) {
+        return false;
+      }
+      const { width, height } = node;
+      if (width === 0 || height === 0) {
+        return false;
+      }
+      return node.dataset.renderState === "ready";
+    });
+
+    expect(rendered).toBe(true);
+  });
 });
