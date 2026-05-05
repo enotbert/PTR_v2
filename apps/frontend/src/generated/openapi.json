@@ -350,7 +350,7 @@
       "get": {
         "tags": ["Party v1"],
         "summary": "Get Party",
-        "description": "Placeholder party read (implementation: PTR-37).",
+        "description": "Read party details for current member.",
         "operationId": "v1_get_party",
         "parameters": [
           {
@@ -447,14 +447,36 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartyCreateBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetailOut"
+                }
               }
             }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Bad Request"
           },
           "401": {
             "content": {
@@ -466,7 +488,74 @@
             },
             "description": "Unauthorized"
           },
-          "501": {
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/parties/{party_id}/join": {
+      "post": {
+        "tags": ["Party v1"],
+        "summary": "Join Party",
+        "operationId": "v1_join_party",
+        "parameters": [
+          {
+            "name": "party_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Party Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartyJoinBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetailOut"
+                }
+              }
+            }
+          },
+          "400": {
             "content": {
               "application/json": {
                 "schema": {
@@ -474,7 +563,124 @@
                 }
               }
             },
-            "description": "Not Implemented"
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/parties/{party_id}/members/me/loadout": {
+      "patch": {
+        "tags": ["Party v1"],
+        "summary": "Update My Party Loadout",
+        "operationId": "v1_update_my_party_loadout",
+        "parameters": [
+          {
+            "name": "party_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Party Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartyLoadoutPatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetailOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "422": {
             "description": "Validation Error",
@@ -493,7 +699,7 @@
       "get": {
         "tags": ["Raid v1"],
         "summary": "Get Raid",
-        "description": "Placeholder raid read (implementation: PTR-37).",
+        "description": "Read raid metadata for party member.",
         "operationId": "v1_get_raid",
         "parameters": [
           {
@@ -590,14 +796,36 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RaidCreateBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RaidDetailOut"
+                }
               }
             }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Bad Request"
           },
           "401": {
             "content": {
@@ -609,7 +837,7 @@
             },
             "description": "Unauthorized"
           },
-          "501": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -617,7 +845,7 @@
                 }
               }
             },
-            "description": "Not Implemented"
+            "description": "Not Found"
           },
           "422": {
             "description": "Validation Error",
@@ -1216,6 +1444,39 @@
         ],
         "title": "InviteDetailOut"
       },
+      "PartyCreateBody": {
+        "properties": {
+          "tavern_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tavern Id"
+          },
+          "role_id": {
+            "type": "string",
+            "title": "Role Id",
+            "default": "vanguard"
+          },
+          "loadout_skill_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loadout Skill Ids"
+          }
+        },
+        "type": "object",
+        "required": ["tavern_id"],
+        "title": "PartyCreateBody"
+      },
       "PartyDetailOut": {
         "properties": {
           "id": {
@@ -1251,6 +1512,66 @@
         "required": ["id", "tavern_id", "created_by_player_id"],
         "title": "PartyDetailOut"
       },
+      "PartyJoinBody": {
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "title": "Role Id",
+            "default": "vanguard"
+          },
+          "loadout_skill_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loadout Skill Ids"
+          }
+        },
+        "type": "object",
+        "title": "PartyJoinBody"
+      },
+      "PartyLoadoutPatchBody": {
+        "properties": {
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id"
+          },
+          "loadout_skill_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loadout Skill Ids"
+          }
+        },
+        "type": "object",
+        "title": "PartyLoadoutPatchBody"
+      },
       "PartyMemberOut": {
         "properties": {
           "player_id": {
@@ -1261,6 +1582,15 @@
           "role_id": {
             "type": "string",
             "title": "Role Id"
+          },
+          "loadout_skill_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Loadout Skill Ids"
           },
           "is_raid_lead": {
             "type": "boolean",
@@ -1365,6 +1695,42 @@
         ],
         "title": "PlayerTavernStateOut",
         "description": "Per-player tavern progression snapshot (authority: ``player_tavern_state``)."
+      },
+      "RaidCreateBody": {
+        "properties": {
+          "party_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "tavern_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tavern Id"
+          },
+          "raid_template_id": {
+            "type": "string",
+            "enum": ["tutorial_solo_v1", "regular_party_v1"],
+            "title": "Raid Template Id",
+            "default": "tutorial_solo_v1"
+          }
+        },
+        "type": "object",
+        "title": "RaidCreateBody"
       },
       "RaidDetailOut": {
         "properties": {
