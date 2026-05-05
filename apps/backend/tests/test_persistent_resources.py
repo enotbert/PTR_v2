@@ -203,9 +203,7 @@ def test_join_party_and_update_my_loadout(
     )
     assert updated.status_code == 200
     updated_joiner_member = next(
-        member
-        for member in updated.json()["members"]
-        if member["player_id"] == str(joiner.id)
+        member for member in updated.json()["members"] if member["player_id"] == str(joiner.id)
     )
     assert updated_joiner_member["role_id"] == "signal_bard"
     assert updated_joiner_member["loadout_skill_ids"] == [
