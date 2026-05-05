@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createApiClient } from "../api/client";
 import type { components } from "../generated/api-types";
 import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
@@ -8,6 +8,11 @@ import {
   combatCanvasAspectRatio,
   useDemoCombatViewModel,
 } from "./CombatCanvas";
+import {
+  CombatHud,
+  type CombatSkillViewModel,
+  type CombatTargetViewModel,
+} from "./CombatHud";
 
 type Props = {
   connectivity: ConnectivityState;
@@ -52,10 +57,54 @@ function formatSource(source: string | null | undefined): string {
 export function TavernHomeScreen({ connectivity }: Props) {
   const home = useTavernHomeState(connectivity);
   const combatViewModel = useDemoCombatViewModel();
+  const [resource, setResource] = useState(5);
+  const [feedback, setFeedback] = useState(
+    "Select a skill to see combat feedback.",
+  );
   const [entry, setEntry] = useState<EntryState>({
     status: "idle",
     message: null,
   });
+  const demoTarget: CombatTargetViewModel = useMemo(
+    () => ({
+      id: "enemy-sentry",
+      label: "Sentry",
+      hp: 44,
+      maxHp: 100,
+      canBeTargeted: false,
+      invalidReason: "Target is out of lane range for melee skill.",
+    }),
+    [],
+  );
+  const demoSkills: CombatSkillViewModel[] = useMemo(
+    () => [
+      {
+        id: "quick-shot",
+        label: "Quick Shot",
+        resourceCost: 2,
+        cooldownRemainingMs: 0,
+        state: resource >= 2 ? "ready" : "no-resource",
+        reason: resource >= 2 ? undefined : "Not enough energy.",
+      },
+      {
+        id: "heavy-slash",
+        label: "Heavy Slash",
+        resourceCost: 4,
+        cooldownRemainingMs: 0,
+        state: demoTarget.canBeTargeted ? "ready" : "invalid-target",
+        reason: demoTarget.invalidReason,
+      },
+      {
+        id: "focus-stance",
+        label: "Focus Stance",
+        resourceCost: 1,
+        cooldownRemainingMs: 6500,
+        state: "cooldown",
+        reason: "Cooling down.",
+      },
+    ],
+    [demoTarget.canBeTargeted, demoTarget.invalidReason, resource],
+  );
 
   const handleStartFirstRaid = useCallback(async () => {
     if (home.status !== "ready") {
@@ -109,6 +158,22 @@ export function TavernHomeScreen({ connectivity }: Props) {
       });
     }
   }, [home.status]);
+
+  const handleSkillPress = useCallback(
+    (skillId: string) => {
+      const skill = demoSkills.find((value) => value.id === skillId);
+      if (!skill) {
+        return;
+      }
+      if (skill.state !== "ready") {
+        setFeedback(skill.reason ?? "This skill is unavailable right now.");
+        return;
+      }
+      setResource((current) => Math.max(0, current - skill.resourceCost));
+      setFeedback(`${skill.label} used on ${demoTarget.label}.`);
+    },
+    [demoSkills, demoTarget.label],
+  );
 
   if (home.status === "blocked") {
     return (
@@ -323,6 +388,17 @@ export function TavernHomeScreen({ connectivity }: Props) {
         <div style={{ aspectRatio: `${1 / combatCanvasAspectRatio}` }}>
           <CombatCanvas viewModel={combatViewModel} />
         </div>
+      </article>
+
+      <article className="tavern-card" data-testid="combat-hud-card">
+        <CombatHud
+          resource={resource}
+          resourceLabel="Energy"
+          target={demoTarget}
+          skills={demoSkills}
+          feedback={feedback}
+          onSkillPress={handleSkillPress}
+        />
       </article>
     </section>
   );
