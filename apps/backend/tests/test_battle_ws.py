@@ -218,6 +218,195 @@ def test_battle_ws_broadcasts_event_to_all_room_participants(
         assert owner_result["type"] == "command.result"
 
 
+def _rl_command(command_id: str, room_id: str, *, target_entity: str | None) -> dict[str, object]:
+    payload: dict[str, object] = {"command_id": command_id}
+    if target_entity:
+        payload["target"] = {"kind": "entity", "entity_id": target_entity}
+    return {
+        "protocol": "ptr.ws.v1",
+        "kind": "command",
+        "type": "combat.send_raid_lead_command",
+        "room": {"kind": "battle", "id": room_id},
+        "client_command_id": f"cmd-rl-{command_id}",
+        "sent_at": "2026-05-05T18:05:00.000Z",
+        "payload": payload,
+    }
+
+
+def _emoji(emoji_id: str, room_id: str, cmd_suffix: str) -> dict[str, object]:
+    return {
+        "protocol": "ptr.ws.v1",
+        "kind": "command",
+        "type": "combat.send_emoji",
+        "room": {"kind": "battle", "id": room_id},
+        "client_command_id": f"cmd-e-{cmd_suffix}",
+        "sent_at": "2026-05-05T18:05:01.000Z",
+        "payload": {"emoji_id": emoji_id},
+    }
+
+
+def _phrase(phrase_id: str, room_id: str, cmd_suffix: str) -> dict[str, object]:
+    return {
+        "protocol": "ptr.ws.v1",
+        "kind": "command",
+        "type": "combat.send_quick_phrase",
+        "room": {"kind": "battle", "id": room_id},
+        "client_command_id": f"cmd-q-{cmd_suffix}",
+        "sent_at": "2026-05-05T18:05:02.000Z",
+        "payload": {"phrase_id": phrase_id},
+    }
+
+
+def test_battle_ws_raid_lead_command_broadcasts_and_snapshots_mark(
+    session_client: TestClient,
+    db_session,
+) -> None:
+    _, owner_session = _make_player_with_session(db_session, "RLLeader")
+    _, joiner_session = _make_player_with_session(db_session, "JoinerFan")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    _join_party(session_client, room_id, joiner_session, "signal_bard")
+
+    leader_path = f"/v1/ws/battles/{room_id}?session_id={owner_session}"
+    joiner_path = f"/v1/ws/battles/{room_id}?session_id={joiner_session}"
+    with (
+        session_client.websocket_connect(leader_path) as ws_lead,
+        session_client.websocket_connect(joiner_path) as ws_join,
+    ):
+        ws_lead.receive_json()
+        ws_join.receive_json()
+
+        ws_lead.send_json(
+            _rl_command(
+                "focus_target",
+                room_id,
+                target_entity="enemy:signal_leech",
+            ),
+        )
+        ev_lead = ws_lead.receive_json()
+        res_lead = ws_lead.receive_json()
+        ev_join = ws_join.receive_json()
+
+        assert ev_lead["type"] == "battle.event"
+        assert ev_lead["payload"]["event_type"] == "raid_lead_command_sent"
+        assert ev_lead["payload"]["command_id"] == "focus_target"
+        assert ev_join["payload"]["target"]["entity_id"] == "enemy:signal_leech"
+        assert res_lead["type"] == "command.result"
+
+    with session_client.websocket_connect(leader_path) as ws2:
+        snap = ws2.receive_json()
+        assert snap["payload"]["last_raid_lead_command"] is not None
+        assert snap["payload"]["last_raid_lead_command"]["command_id"] == "focus_target"
+
+    with session_client.websocket_connect(joiner_path) as ws3:
+        snap_j = ws3.receive_json()
+        assert snap_j["payload"]["last_raid_lead_command"]["target"]["entity_id"] == (
+            "enemy:signal_leech"
+        )
+
+
+def test_battle_ws_non_lead_raids_command_denied(session_client: TestClient, db_session) -> None:
+    _, owner_session = _make_player_with_session(db_session, "RLCap")
+    joiner_pid, joiner_session = _make_player_with_session(db_session, "Pleb")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    _join_party(session_client, room_id, joiner_session, "signal_bard")
+    joiner_actor = f"player:{joiner_pid}"
+
+    joiner_path = f"/v1/ws/battles/{room_id}?session_id={joiner_session}"
+    with session_client.websocket_connect(joiner_path) as ws:
+        ws.receive_json()
+        ws.send_json(
+            _command(
+                command_id="warmup",
+                room_id=room_id,
+                actor_id=joiner_actor,
+                skill_id="signal_shot",
+                target_id="enemy:rustbound_striker",
+            ),
+        )
+        ws.receive_json()
+        ws.receive_json()
+
+        ws.send_json(_rl_command("rally", room_id, target_entity=None))
+        err = ws.receive_json()
+        assert err["type"] == "command.error"
+        assert err["payload"]["code"] == "NOT_RAID_LEAD"
+
+
+def test_battle_ws_emoji_and_phrase_broadcast(session_client: TestClient, db_session) -> None:
+    owner_id, owner_session = _make_player_with_session(db_session, "EmojiSender")
+    _, join_session = _make_player_with_session(db_session, "EmojiWatcher")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    _join_party(session_client, room_id, join_session, "signal_bard")
+
+    owner_path = f"/v1/ws/battles/{room_id}?session_id={owner_session}"
+    join_path = f"/v1/ws/battles/{room_id}?session_id={join_session}"
+    with (
+        session_client.websocket_connect(owner_path) as ws_own,
+        session_client.websocket_connect(join_path) as ws_watch,
+    ):
+        ws_own.receive_json()
+        ws_watch.receive_json()
+
+        ws_own.send_json(_emoji("nice", room_id, "1"))
+        ev_o = ws_own.receive_json()
+        res_o = ws_own.receive_json()
+        ev_w = ws_watch.receive_json()
+        assert ev_o["payload"]["event_type"] == "emoji_sent"
+        assert ev_w["payload"]["emoji_id"] == "nice"
+        assert res_o["payload"]["status"] == "accepted"
+
+        ws_own.send_json(_phrase("need_heal", room_id, "2"))
+        phrase_ev_o = ws_own.receive_json()
+        phrase_res_o = ws_own.receive_json()
+        phrase_ev_w = ws_watch.receive_json()
+        assert phrase_ev_o["payload"]["event_type"] == "quick_phrase_sent"
+        assert phrase_ev_w["payload"]["phrase_id"] == "need_heal"
+        assert phrase_res_o["payload"]["status"] == "accepted"
+
+
+def test_battle_ws_rate_limits_emoji_burst(session_client: TestClient, db_session) -> None:
+    _, owner_session = _make_player_with_session(db_session, "SpamEmoji")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    path = f"/v1/ws/battles/{room_id}?session_id={owner_session}"
+    with session_client.websocket_connect(path) as ws:
+        ws.receive_json()
+        ws.send_json(_emoji("help", room_id, "a"))
+        ws.receive_json()
+        ws.receive_json()
+        ws.send_json(_emoji("danger", room_id, "b"))
+        limited = ws.receive_json()
+        assert limited["type"] == "command.error"
+        assert limited["payload"]["code"] == "RATE_LIMITED"
+        assert limited["payload"]["retryable"] is True
+
+
+def test_battle_ws_unsupported_command_type(session_client: TestClient, db_session) -> None:
+    _, session_id = _make_player_with_session(db_session, "BadProto")
+    db_session.commit()
+    room_id = _create_party(session_client, session_id, "vanguard")
+    ws_path = f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    with session_client.websocket_connect(ws_path) as ws:
+        ws.receive_json()
+        ws.send_json(
+            {
+                "protocol": "ptr.ws.v1",
+                "kind": "command",
+                "type": "combat.unknown_proto",
+                "room": {"kind": "battle", "id": room_id},
+                "client_command_id": "unsupported-1",
+                "sent_at": "2026-05-05T18:06:00.000Z",
+                "payload": {},
+            },
+        )
+        err = ws.receive_json()
+        assert err["type"] == "command.error"
+        assert err["payload"]["code"] == "UNSUPPORTED_PROTOCOL"
+
+
 def test_battle_ws_reconnect_receives_fresh_snapshot(
     session_client: TestClient, db_session
 ) -> None:
