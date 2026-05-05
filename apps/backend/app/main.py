@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import psycopg
 from fastapi import APIRouter, FastAPI
 
+from app.api.v1.lobby_ws import router as lobby_ws_router
 from app.api.v1.persistent_resources import router as persistent_resources_router
 from app.api.v1.sessions import router as sessions_router
 from app.errors import ApiError, api_error_handler
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(sessions_router, prefix="/v1")
     app.include_router(persistent_resources_router, prefix="/v1")
+    app.include_router(lobby_ws_router, prefix="/v1")
     return app
 
 
