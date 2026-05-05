@@ -84,11 +84,31 @@ export interface paths {
     };
     /**
      * Get Tavern Player State
-     * @description Placeholder tavern progression read (implementation: PTR-35).
+     * @description Read tavern home state bundle (project, summary, and short chronicle).
      */
     get: operations["v1_get_tavern_player_state"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/taverns/{tavern_id}/contributions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Tavern Contribution
+     * @description Server-authoritative contribution write; client only sends intent.
+     */
+    post: operations["v1_add_tavern_contribution"];
     delete?: never;
     options?: never;
     head?: never;
@@ -267,6 +287,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AddTavernContributionBody */
+    AddTavernContributionBody: {
+      /** Amount */
+      amount: number;
+      /**
+       * Source Type
+       * @default raid_reward
+       * @enum {string}
+       */
+      source_type: "raid_reward" | "weekly_event" | "manual_spend";
+      /** Source Ref */
+      source_ref?: string | null;
+    };
     /** AnalyticsDebugEventListOut */
     AnalyticsDebugEventListOut: {
       /** Items */
@@ -453,6 +486,10 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+      current_project: components["schemas"]["TavernProjectOut"];
+      contribution_summary: components["schemas"]["TavernContributionSummaryOut"];
+      /** Chronicle */
+      chronicle?: components["schemas"]["TavernChronicleEntryOut"][];
     };
     /** RaidDetailOut */
     RaidDetailOut: {
@@ -538,6 +575,62 @@ export interface components {
       expires_at: string;
       /** Device Fingerprint */
       device_fingerprint?: string | null;
+    };
+    /** TavernChronicleEntryOut */
+    TavernChronicleEntryOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Source Type */
+      source_type: string;
+      /** Source Ref */
+      source_ref?: string | null;
+      /** Amount */
+      amount: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** TavernContributionSummaryOut */
+    TavernContributionSummaryOut: {
+      /**
+       * Total Points
+       * @default 0
+       */
+      total_points: number;
+      /** Latest Amount */
+      latest_amount?: number | null;
+      /** Latest Source Type */
+      latest_source_type?: string | null;
+      /** Latest At */
+      latest_at?: string | null;
+    };
+    /** TavernProjectOut */
+    TavernProjectOut: {
+      /** Id */
+      id: string;
+      /** Title */
+      title: string;
+      /**
+       * Status
+       * @default active
+       * @enum {string}
+       */
+      status: "active" | "completed" | "reward_claimable" | "expired";
+      /**
+       * Progress Points
+       * @default 0
+       */
+      progress_points: number;
+      /**
+       * Target Points
+       * @default 0
+       */
+      target_points: number;
     };
     /** ValidationError */
     ValidationError: {
@@ -721,6 +814,70 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PlayerTavernStateOut"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  v1_add_tavern_contribution: {
+    parameters: {
+      query?: never;
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        tavern_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddTavernContributionBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlayerTavernStateOut"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
       /** @description Unauthorized */

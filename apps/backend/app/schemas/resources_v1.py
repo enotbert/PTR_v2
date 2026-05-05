@@ -30,6 +30,38 @@ class PlayerTavernStateOut(BaseModel):
     reputation: int = 0
     weekly_points: int = 0
     updated_at: datetime
+    current_project: TavernProjectOut
+    contribution_summary: TavernContributionSummaryOut
+    chronicle: list[TavernChronicleEntryOut] = Field(default_factory=list)
+
+
+class TavernProjectOut(BaseModel):
+    id: str
+    title: str
+    status: Literal["active", "completed", "reward_claimable", "expired"] = "active"
+    progress_points: int = 0
+    target_points: int = 0
+
+
+class TavernContributionSummaryOut(BaseModel):
+    total_points: int = 0
+    latest_amount: int | None = None
+    latest_source_type: str | None = None
+    latest_at: datetime | None = None
+
+
+class TavernChronicleEntryOut(BaseModel):
+    id: uuid.UUID
+    source_type: str
+    source_ref: str | None = None
+    amount: int
+    created_at: datetime
+
+
+class AddTavernContributionBody(BaseModel):
+    amount: int = Field(gt=0, le=10_000)
+    source_type: Literal["raid_reward", "weekly_event", "manual_spend"] = "raid_reward"
+    source_ref: str | None = Field(default=None, max_length=128)
 
 
 class PartyMemberOut(BaseModel):
@@ -91,8 +123,11 @@ class AnalyticsDebugEventListOut(BaseModel):
 
 
 __all__ = [
+    "AddTavernContributionBody",
     "AnalyticsDebugEventListOut",
     "AnalyticsDebugEventOut",
+    "TavernChronicleEntryOut",
+    "TavernContributionSummaryOut",
     "InviteDetailOut",
     "PartyDetailOut",
     "PartyMemberOut",
@@ -100,5 +135,6 @@ __all__ = [
     "RaidDetailOut",
     "RewardItemOut",
     "RewardListOut",
+    "TavernProjectOut",
     "TavernRefOut",
 ]

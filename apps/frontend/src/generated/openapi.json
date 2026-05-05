@@ -174,7 +174,7 @@
       "get": {
         "tags": ["Tavern v1"],
         "summary": "Get Tavern Player State",
-        "description": "Placeholder tavern progression read (implementation: PTR-35).",
+        "description": "Read tavern home state bundle (project, summary, and short chronicle).",
         "operationId": "v1_get_tavern_player_state",
         "parameters": [
           {
@@ -214,6 +214,104 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/taverns/{tavern_id}/contributions": {
+      "post": {
+        "tags": ["Tavern v1"],
+        "summary": "Post Tavern Contribution",
+        "description": "Server-authoritative contribution write; client only sends intent.",
+        "operationId": "v1_add_tavern_contribution",
+        "parameters": [
+          {
+            "name": "tavern_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tavern Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTavernContributionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerTavernStateOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Bad Request"
           },
           "401": {
             "content": {
@@ -856,6 +954,37 @@
   },
   "components": {
     "schemas": {
+      "AddTavernContributionBody": {
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "source_type": {
+            "type": "string",
+            "enum": ["raid_reward", "weekly_event", "manual_spend"],
+            "title": "Source Type",
+            "default": "raid_reward"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          }
+        },
+        "type": "object",
+        "required": ["amount"],
+        "title": "AddTavernContributionBody"
+      },
       "AnalyticsDebugEventListOut": {
         "properties": {
           "items": {
@@ -1211,10 +1340,29 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "current_project": {
+            "$ref": "#/components/schemas/TavernProjectOut"
+          },
+          "contribution_summary": {
+            "$ref": "#/components/schemas/TavernContributionSummaryOut"
+          },
+          "chronicle": {
+            "items": {
+              "$ref": "#/components/schemas/TavernChronicleEntryOut"
+            },
+            "type": "array",
+            "title": "Chronicle"
           }
         },
         "type": "object",
-        "required": ["tavern_id", "player_id", "updated_at"],
+        "required": [
+          "tavern_id",
+          "player_id",
+          "updated_at",
+          "current_project",
+          "contribution_summary"
+        ],
         "title": "PlayerTavernStateOut",
         "description": "Per-player tavern progression snapshot (authority: ``player_tavern_state``)."
       },
@@ -1349,6 +1497,118 @@
         "type": "object",
         "required": ["id", "player_id", "issued_at", "expires_at"],
         "title": "SessionOut"
+      },
+      "TavernChronicleEntryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "source_type", "amount", "created_at"],
+        "title": "TavernChronicleEntryOut"
+      },
+      "TavernContributionSummaryOut": {
+        "properties": {
+          "total_points": {
+            "type": "integer",
+            "title": "Total Points",
+            "default": 0
+          },
+          "latest_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Amount"
+          },
+          "latest_source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Type"
+          },
+          "latest_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest At"
+          }
+        },
+        "type": "object",
+        "title": "TavernContributionSummaryOut"
+      },
+      "TavernProjectOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "completed", "reward_claimable", "expired"],
+            "title": "Status",
+            "default": "active"
+          },
+          "progress_points": {
+            "type": "integer",
+            "title": "Progress Points",
+            "default": 0
+          },
+          "target_points": {
+            "type": "integer",
+            "title": "Target Points",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["id", "title"],
+        "title": "TavernProjectOut"
       },
       "ValidationError": {
         "properties": {
