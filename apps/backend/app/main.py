@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.battle_ws import router as battle_ws_router
 from app.api.v1.lobby_ws import router as lobby_ws_router
@@ -35,6 +36,18 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         redoc_url=None,
         lifespan=lifespan,
+    )
+    raw_origins = os.environ.get(
+        "BACKEND_CORS_ORIGINS",
+        "http://localhost:15173,http://127.0.0.1:15173,http://localhost:5173,http://127.0.0.1:5173",
+    )
+    allow_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allow_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.add_exception_handler(ApiError, api_error_handler)
     app.include_router(router)
