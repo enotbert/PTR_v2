@@ -20,12 +20,34 @@ from app.schemas.resources_v1 import (
     AddTavernContributionBody,
     AnalyticsDebugEventListOut,
     InviteDetailOut,
+    PartyCreateBody,
     PartyDetailOut,
+    PartyJoinBody,
+    PartyLoadoutPatchBody,
     PlayerTavernStateOut,
+    RaidCreateBody,
     RaidDetailOut,
     RewardListOut,
 )
 from app.schemas.session import ErrorBody
+from app.services.raid_setup import (
+    create_party as create_party_service,
+)
+from app.services.raid_setup import (
+    create_raid as create_raid_service,
+)
+from app.services.raid_setup import (
+    get_party as get_party_service,
+)
+from app.services.raid_setup import (
+    get_raid as get_raid_service,
+)
+from app.services.raid_setup import (
+    join_party as join_party_service,
+)
+from app.services.raid_setup import (
+    update_my_loadout as update_my_loadout_service,
+)
 from app.services.tavern import add_tavern_contribution, read_tavern_state
 
 router = APIRouter()
@@ -98,27 +120,74 @@ def get_party(
     db: Annotated[Session, Depends(get_db)],
     player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
 ) -> PartyDetailOut:
-    """Placeholder party read (implementation: PTR-37)."""
+    """Read party details for current member."""
 
-    _ = db
-    return PartyDetailOut(
-        id=party_id,
-        tavern_id=uuid.UUID(int=0),
-        created_by_player_id=player_id,
-        status="open",
-        members=[],
-    )
+    return get_party_service(db, party_id=party_id, player_id=player_id)
 
 
 @router.post(
     "/parties",
-    response_model=None,
+    response_model=PartyDetailOut,
     tags=["Party v1"],
     operation_id="v1_create_party",
-    responses={401: {"model": ErrorBody}, 501: {"model": ErrorBody}},
+    responses={400: {"model": ErrorBody}, 401: {"model": ErrorBody}},
 )
-def create_party(_: Annotated[uuid.UUID, Depends(require_session_player_id)]) -> NoReturn:
-    _not_implemented("PTR-37", "Party creation is not implemented yet.")
+def create_party(
+    body: PartyCreateBody,
+    db: Annotated[Session, Depends(get_db)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
+) -> PartyDetailOut:
+    return create_party_service(
+        db,
+        player_id=player_id,
+        tavern_id=body.tavern_id,
+        role_id=body.role_id,
+        loadout_skill_ids=body.loadout_skill_ids,
+    )
+
+
+@router.post(
+    "/parties/{party_id}/join",
+    response_model=PartyDetailOut,
+    tags=["Party v1"],
+    operation_id="v1_join_party",
+    responses={400: {"model": ErrorBody}, 401: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+)
+def join_party(
+    party_id: uuid.UUID,
+    body: PartyJoinBody,
+    db: Annotated[Session, Depends(get_db)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
+) -> PartyDetailOut:
+    return join_party_service(
+        db,
+        party_id=party_id,
+        player_id=player_id,
+        role_id=body.role_id,
+        loadout_skill_ids=body.loadout_skill_ids,
+    )
+
+
+@router.patch(
+    "/parties/{party_id}/members/me/loadout",
+    response_model=PartyDetailOut,
+    tags=["Party v1"],
+    operation_id="v1_update_my_party_loadout",
+    responses={400: {"model": ErrorBody}, 401: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+)
+def update_my_party_loadout(
+    party_id: uuid.UUID,
+    body: PartyLoadoutPatchBody,
+    db: Annotated[Session, Depends(get_db)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
+) -> PartyDetailOut:
+    return update_my_loadout_service(
+        db,
+        party_id=party_id,
+        player_id=player_id,
+        role_id=body.role_id,
+        loadout_skill_ids=body.loadout_skill_ids,
+    )
 
 
 @router.get(
@@ -131,28 +200,32 @@ def create_party(_: Annotated[uuid.UUID, Depends(require_session_player_id)]) ->
 def get_raid(
     raid_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[uuid.UUID, Depends(require_session_player_id)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
 ) -> RaidDetailOut:
-    """Placeholder raid read (implementation: PTR-37)."""
+    """Read raid metadata for party member."""
 
-    _ = db
-    return RaidDetailOut(
-        id=raid_id,
-        party_id=uuid.UUID(int=0),
-        raid_template_id="unknown",
-        status="pending",
-    )
+    return get_raid_service(db, raid_id=raid_id, player_id=player_id)
 
 
 @router.post(
     "/raids",
-    response_model=None,
+    response_model=RaidDetailOut,
     tags=["Raid v1"],
     operation_id="v1_create_raid",
-    responses={401: {"model": ErrorBody}, 501: {"model": ErrorBody}},
+    responses={400: {"model": ErrorBody}, 401: {"model": ErrorBody}, 404: {"model": ErrorBody}},
 )
-def create_raid(_: Annotated[uuid.UUID, Depends(require_session_player_id)]) -> NoReturn:
-    _not_implemented("PTR-37", "Raid creation is not implemented yet.")
+def create_raid(
+    body: RaidCreateBody,
+    db: Annotated[Session, Depends(get_db)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
+) -> RaidDetailOut:
+    return create_raid_service(
+        db,
+        player_id=player_id,
+        party_id=body.party_id,
+        tavern_id=body.tavern_id,
+        raid_template_id=body.raid_template_id,
+    )
 
 
 @router.get(

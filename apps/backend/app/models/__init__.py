@@ -4,15 +4,19 @@ from app.models.base import Base
 from app.models.command_dedup import CommandDedup
 from app.models.game_audit_event import GameAuditEvent
 from app.models.identity import Player, PlayerSession
+from app.models.party_raid import Party, PartyMember, Raid
 from app.models.tavern import PlayerTavernState, Tavern, TavernContribution
 
 __all__ = [
     "Base",
     "CommandDedup",
     "GameAuditEvent",
+    "Party",
+    "PartyMember",
     "Player",
     "PlayerSession",
     "PlayerTavernState",
+    "Raid",
     "Tavern",
     "TavernContribution",
 ]

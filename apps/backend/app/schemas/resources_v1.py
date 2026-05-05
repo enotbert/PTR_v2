@@ -67,6 +67,7 @@ class AddTavernContributionBody(BaseModel):
 class PartyMemberOut(BaseModel):
     player_id: uuid.UUID
     role_id: str
+    loadout_skill_ids: list[str] = Field(default_factory=list, min_length=3, max_length=3)
     is_raid_lead: bool = False
 
 
@@ -78,11 +79,33 @@ class PartyDetailOut(BaseModel):
     members: list[PartyMemberOut] = Field(default_factory=list)
 
 
+class PartyCreateBody(BaseModel):
+    tavern_id: uuid.UUID
+    role_id: str = "vanguard"
+    loadout_skill_ids: list[str] | None = Field(default=None, min_length=3, max_length=3)
+
+
+class PartyJoinBody(BaseModel):
+    role_id: str = "vanguard"
+    loadout_skill_ids: list[str] | None = Field(default=None, min_length=3, max_length=3)
+
+
+class PartyLoadoutPatchBody(BaseModel):
+    role_id: str | None = None
+    loadout_skill_ids: list[str] | None = Field(default=None, min_length=3, max_length=3)
+
+
 class RaidDetailOut(BaseModel):
     id: uuid.UUID
     party_id: uuid.UUID
     raid_template_id: str = "unknown"
     status: Literal["pending", "active", "completed", "failed", "abandoned"] = "pending"
+
+
+class RaidCreateBody(BaseModel):
+    party_id: uuid.UUID | None = None
+    tavern_id: uuid.UUID | None = None
+    raid_template_id: Literal["tutorial_solo_v1", "regular_party_v1"] = "tutorial_solo_v1"
 
 
 class RewardItemOut(BaseModel):
@@ -126,12 +149,16 @@ __all__ = [
     "AddTavernContributionBody",
     "AnalyticsDebugEventListOut",
     "AnalyticsDebugEventOut",
+    "PartyCreateBody",
     "TavernChronicleEntryOut",
     "TavernContributionSummaryOut",
     "InviteDetailOut",
     "PartyDetailOut",
+    "PartyJoinBody",
+    "PartyLoadoutPatchBody",
     "PartyMemberOut",
     "PlayerTavernStateOut",
+    "RaidCreateBody",
     "RaidDetailOut",
     "RewardItemOut",
     "RewardListOut",

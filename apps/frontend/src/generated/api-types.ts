@@ -124,7 +124,7 @@ export interface paths {
     };
     /**
      * Get Party
-     * @description Placeholder party read (implementation: PTR-37).
+     * @description Read party details for current member.
      */
     get: operations["v1_get_party"];
     put?: never;
@@ -152,6 +152,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/parties/{party_id}/join": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Join Party */
+    post: operations["v1_join_party"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/parties/{party_id}/members/me/loadout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update My Party Loadout */
+    patch: operations["v1_update_my_party_loadout"];
+    trace?: never;
+  };
   "/v1/raids/{raid_id}": {
     parameters: {
       query?: never;
@@ -161,7 +195,7 @@ export interface paths {
     };
     /**
      * Get Raid
-     * @description Placeholder raid read (implementation: PTR-37).
+     * @description Read raid metadata for party member.
      */
     get: operations["v1_get_raid"];
     put?: never;
@@ -388,6 +422,21 @@ export interface components {
       /** Used At */
       used_at?: string | null;
     };
+    /** PartyCreateBody */
+    PartyCreateBody: {
+      /**
+       * Tavern Id
+       * Format: uuid
+       */
+      tavern_id: string;
+      /**
+       * Role Id
+       * @default vanguard
+       */
+      role_id: string;
+      /** Loadout Skill Ids */
+      loadout_skill_ids?: string[] | null;
+    };
     /** PartyDetailOut */
     PartyDetailOut: {
       /**
@@ -414,6 +463,23 @@ export interface components {
       /** Members */
       members?: components["schemas"]["PartyMemberOut"][];
     };
+    /** PartyJoinBody */
+    PartyJoinBody: {
+      /**
+       * Role Id
+       * @default vanguard
+       */
+      role_id: string;
+      /** Loadout Skill Ids */
+      loadout_skill_ids?: string[] | null;
+    };
+    /** PartyLoadoutPatchBody */
+    PartyLoadoutPatchBody: {
+      /** Role Id */
+      role_id?: string | null;
+      /** Loadout Skill Ids */
+      loadout_skill_ids?: string[] | null;
+    };
     /** PartyMemberOut */
     PartyMemberOut: {
       /**
@@ -423,6 +489,8 @@ export interface components {
       player_id: string;
       /** Role Id */
       role_id: string;
+      /** Loadout Skill Ids */
+      loadout_skill_ids?: string[];
       /**
        * Is Raid Lead
        * @default false
@@ -490,6 +558,19 @@ export interface components {
       contribution_summary: components["schemas"]["TavernContributionSummaryOut"];
       /** Chronicle */
       chronicle?: components["schemas"]["TavernChronicleEntryOut"][];
+    };
+    /** RaidCreateBody */
+    RaidCreateBody: {
+      /** Party Id */
+      party_id?: string | null;
+      /** Tavern Id */
+      tavern_id?: string | null;
+      /**
+       * Raid Template Id
+       * @default tutorial_solo_v1
+       * @enum {string}
+       */
+      raid_template_id: "tutorial_solo_v1" | "regular_party_v1";
     };
     /** RaidDetailOut */
     RaidDetailOut: {
@@ -969,7 +1050,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PartyCreateBody"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -977,7 +1062,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["PartyDetailOut"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
       /** @description Unauthorized */
@@ -998,13 +1092,132 @@ export interface operations {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
-      /** @description Not Implemented */
-      501: {
+    };
+  };
+  v1_join_party: {
+    parameters: {
+      query?: never;
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        party_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PartyJoinBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PartyDetailOut"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  v1_update_my_party_loadout: {
+    parameters: {
+      query?: never;
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        party_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PartyLoadoutPatchBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PartyDetailOut"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -1069,7 +1282,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RaidCreateBody"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -1077,11 +1294,29 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["RaidDetailOut"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -1096,15 +1331,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-      /** @description Not Implemented */
-      501: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
         };
       };
     };
