@@ -1,5 +1,5 @@
 import { AppShell } from "./components/AppShell";
-import { HomePlaceholder } from "./components/HomePlaceholder";
+import { TavernHomeScreen } from "./components/TavernHomeScreen";
 import { useNetworkAndApiStatus } from "./hooks/useNetworkAndApiStatus";
 
 export default function App() {
@@ -7,7 +7,7 @@ export default function App() {
 
   return (
     <AppShell connectivity={connectivity}>
-      <HomePlaceholder connectivity={connectivity} />
+      <TavernHomeScreen connectivity={connectivity} />
     </AppShell>
   );
 }
