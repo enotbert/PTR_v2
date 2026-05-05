@@ -17,6 +17,7 @@ from app.api.deps import require_session_player_id
 from app.db import get_db
 from app.errors import ApiError
 from app.schemas.resources_v1 import (
+    AddTavernContributionBody,
     AnalyticsDebugEventListOut,
     InviteDetailOut,
     PartyDetailOut,
@@ -25,6 +26,7 @@ from app.schemas.resources_v1 import (
     RewardListOut,
 )
 from app.schemas.session import ErrorBody
+from app.services.tavern import add_tavern_contribution, read_tavern_state
 
 router = APIRouter()
 
@@ -54,15 +56,33 @@ def get_tavern_player_state(
     db: Annotated[Session, Depends(get_db)],
     player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
 ) -> PlayerTavernStateOut:
-    """Placeholder tavern progression read (implementation: PTR-35)."""
+    """Read tavern home state bundle (project, summary, and short chronicle)."""
 
-    _ = db  # reserved for DB-backed read
-    return PlayerTavernStateOut(
-        tavern_id=tavern_id,
+    return read_tavern_state(db, player_id=player_id, tavern_id=tavern_id)
+
+
+@router.post(
+    "/taverns/{tavern_id}/contributions",
+    response_model=PlayerTavernStateOut,
+    tags=["Tavern v1"],
+    operation_id="v1_add_tavern_contribution",
+    responses={400: {"model": ErrorBody}, 401: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+)
+def post_tavern_contribution(
+    tavern_id: uuid.UUID,
+    body: AddTavernContributionBody,
+    db: Annotated[Session, Depends(get_db)],
+    player_id: Annotated[uuid.UUID, Depends(require_session_player_id)],
+) -> PlayerTavernStateOut:
+    """Server-authoritative contribution write; client only sends intent."""
+
+    return add_tavern_contribution(
+        db,
         player_id=player_id,
-        reputation=0,
-        weekly_points=0,
-        updated_at=_now(),
+        tavern_id=tavern_id,
+        amount=body.amount,
+        source_type=body.source_type,
+        source_ref=body.source_ref,
     )
 
 
