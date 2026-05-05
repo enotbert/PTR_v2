@@ -2,7 +2,46 @@ import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
+const MOCK_SESSION_ENVELOPE = {
+  player: {
+    id: "00000000-0000-0000-0000-000000000010",
+    display_name: "E2E Player",
+    created_at: "2026-05-05T09:00:00Z",
+    updated_at: "2026-05-05T09:00:00Z",
+    last_seen_at: "2026-05-05T09:00:00Z",
+    is_active: true,
+  },
+  session: {
+    id: "00000000-0000-0000-0000-000000000099",
+    player_id: "00000000-0000-0000-0000-000000000010",
+    issued_at: "2026-05-05T09:00:00Z",
+    expires_at: "2027-05-05T09:00:00Z",
+  },
+};
+
+async function mockGameplaySession(page: import("@playwright/test").Page) {
+  await page.route("**/v1/sessions", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_SESSION_ENVELOPE),
+    });
+  });
+  await page.route("**/v1/sessions/current", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_SESSION_ENVELOPE),
+    });
+  });
+}
+
 async function mockTavernState(page: import("@playwright/test").Page) {
+  await mockGameplaySession(page);
   await page.route("**/v1/taverns/*/state", async (route) => {
     await route.fulfill({
       status: 200,
@@ -187,6 +226,32 @@ test.describe("app shell (mobile viewport)", () => {
       raid_template_id: "tutorial_solo_v1",
       tavern_id: "00000000-0000-0000-0000-000000000001",
     });
+  });
+
+  test("renders battle communications panel on tavern home", async ({
+    page,
+  }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+    await mockTavernState(page);
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("network-status")).toHaveAttribute(
+      "data-status",
+      "ready",
+      { timeout: 15_000 },
+    );
+
+    await expect(page.getByTestId("combat-comms-panel")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("combat-comms-emoji-row")).toBeVisible();
   });
 
   test("renders nonblank combat canvas preview", async ({ page }) => {

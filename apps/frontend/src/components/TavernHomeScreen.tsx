@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { createApiClient } from "../api/client";
+import { createBearerApiClient } from "../api/client";
+import { mapBattleSnapshotToCanvas } from "../battle/mapBattleSnapshotToCanvas";
 import type { components } from "../generated/api-types";
+import { useBattleLiveState } from "../hooks/useBattleLiveState";
+import type { GameplaySession } from "../hooks/useGameplaySession";
 import type { ConnectivityState } from "../hooks/useNetworkAndApiStatus";
 import { useTavernHomeState } from "../hooks/useTavernHomeState";
 import {
@@ -9,6 +12,7 @@ import {
   combatCanvasAspectRatio,
   useDemoCombatViewModel,
 } from "./CombatCanvas";
+import { CombatCommsPanel } from "./CombatCommsPanel";
 import {
   CombatHud,
   type CombatSkillViewModel,
@@ -17,6 +21,7 @@ import {
 
 type Props = {
   connectivity: ConnectivityState;
+  gameplaySession: GameplaySession;
 };
 
 type RaidDetail = components["schemas"]["RaidDetailOut"];
@@ -50,10 +55,6 @@ const SKILL_TARGET_RULES: Record<string, SkillTargetRule> = {
   },
 };
 
-function getApiBase(): string {
-  return import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
-}
-
 function getTavernId(): string {
   return import.meta.env.VITE_TAVERN_ID?.trim() || DEFAULT_TAVERN_ID;
 }
@@ -76,20 +77,47 @@ function formatSource(source: string | null | undefined): string {
   return source.replaceAll("_", " ");
 }
 
-export function TavernHomeScreen({ connectivity }: Props) {
-  const home = useTavernHomeState(connectivity);
+export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
+  const home = useTavernHomeState(connectivity, gameplaySession);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [invalidTargetReason, setInvalidTargetReason] = useState<string | null>(
     null,
   );
-  const combatViewModel = useDemoCombatViewModel(selectedTargetId);
+  const demoCombatViewModel = useDemoCombatViewModel(selectedTargetId);
   const [resource, setResource] = useState(5);
   const [feedback, setFeedback] = useState(DEFAULT_FEEDBACK);
   const [entry, setEntry] = useState<EntryState>({
     status: "idle",
     message: null,
   });
+
+  const apiBaseUrl = useMemo(
+    () => import.meta.env.VITE_API_BASE_URL?.trim() ?? "",
+    [],
+  );
+  const battlePartyId = entry.status === "ready" ? entry.raid.party_id : null;
+  const battleSessionId =
+    gameplaySession.status === "ready" ? gameplaySession.sessionId : null;
+  const { live, sendEmoji, sendQuickPhrase, sendRaidLeadCommand } =
+    useBattleLiveState(apiBaseUrl, battlePartyId, battleSessionId);
+
+  const combatViewModel = useMemo(() => {
+    if (
+      live.status === "ready" &&
+      live.store.snapshot &&
+      gameplaySession.status === "ready"
+    ) {
+      return mapBattleSnapshotToCanvas(
+        live.store.snapshot,
+        gameplaySession.playerId,
+        selectedTargetId,
+        live.store.raidLeadHighlightEntityId,
+      );
+    }
+    return demoCombatViewModel;
+  }, [demoCombatViewModel, gameplaySession, live, selectedTargetId]);
+
   const selectedTarget = useMemo(
     () =>
       [...combatViewModel.party, ...combatViewModel.enemies].find(
@@ -139,17 +167,44 @@ export function TavernHomeScreen({ connectivity }: Props) {
     [resource],
   );
 
+  const selectedEnemyEntityId = useMemo(() => {
+    if (!selectedTargetId) {
+      return null;
+    }
+    const unit = [...combatViewModel.party, ...combatViewModel.enemies].find(
+      (candidate) => candidate.id === selectedTargetId,
+    );
+    return unit?.side === "enemy" ? unit.id : null;
+  }, [combatViewModel, selectedTargetId]);
+
+  const viewerIsRaidLead =
+    live.status === "ready" &&
+    live.store.snapshot !== null &&
+    gameplaySession.status === "ready" &&
+    live.store.snapshot.raid_lead_player_id === gameplaySession.playerId;
+
+  const commsFeed = live.status === "ready" ? live.store.feed : [];
+  const combatCommsConnected = live.status === "ready";
+
   const handleStartFirstRaid = useCallback(async () => {
     if (home.status !== "ready") {
       return;
     }
 
-    const apiBase = getApiBase();
-    if (!apiBase) {
+    if (!apiBaseUrl) {
       setEntry({
         status: "error",
         message:
           "Gameplay API is not configured. Cannot create the first raid session.",
+      });
+      return;
+    }
+
+    if (gameplaySession.status !== "ready") {
+      setEntry({
+        status: "error",
+        message:
+          "Session is still starting. Please wait a moment and try again.",
       });
       return;
     }
@@ -159,7 +214,7 @@ export function TavernHomeScreen({ connectivity }: Props) {
       message: "Creating first tutorial raid session…",
     });
 
-    const client = createApiClient(apiBase);
+    const client = createBearerApiClient(apiBaseUrl, gameplaySession.sessionId);
     try {
       const { data, error, response } = await client.POST("/v1/raids", {
         body: {
@@ -190,7 +245,7 @@ export function TavernHomeScreen({ connectivity }: Props) {
           "Unable to create first raid setup right now. Please retry in a moment.",
       });
     }
-  }, [home.status]);
+  }, [apiBaseUrl, gameplaySession, home.status]);
 
   const handleSkillPress = useCallback(
     (skillId: string) => {
@@ -476,6 +531,18 @@ export function TavernHomeScreen({ connectivity }: Props) {
           skills={demoSkills}
           feedback={feedback}
           onSkillPress={handleSkillPress}
+        />
+      </article>
+
+      <article className="tavern-card" data-testid="combat-comms-card">
+        <CombatCommsPanel
+          connected={combatCommsConnected}
+          viewerIsRaidLead={viewerIsRaidLead}
+          feed={commsFeed}
+          selectedEnemyEntityId={selectedEnemyEntityId}
+          onSendEmoji={sendEmoji}
+          onSendPhrase={sendQuickPhrase}
+          onSendRaidLead={sendRaidLeadCommand}
         />
       </article>
     </section>

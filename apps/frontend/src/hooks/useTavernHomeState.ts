@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { createApiClient } from "../api/client";
+import { createBearerApiClient } from "../api/client";
 import type { components } from "../generated/api-types";
 import { useGameplayActionGate } from "./useGameplayActionGate";
+import type { GameplaySession } from "./useGameplaySession";
 import type { ConnectivityState } from "./useNetworkAndApiStatus";
 
 type TavernState = components["schemas"]["PlayerTavernStateOut"];
@@ -36,6 +37,7 @@ function toErrorMessage(code: number | null): string {
 
 export function useTavernHomeState(
   connectivity: ConnectivityState,
+  gameplaySession: GameplaySession,
 ): TavernHomeState {
   const apiBase = useMemo(() => getApiBase(), []);
   const tavernId = useMemo(() => getTavernId(), []);
@@ -60,12 +62,52 @@ export function useTavernHomeState(
       return;
     }
 
+    if (!apiBase) {
+      setState({
+        status: "error",
+        message:
+          "Gameplay API is not configured. Set VITE_API_BASE_URL for live data.",
+      });
+      return;
+    }
+
+    if (
+      gameplaySession.status === "pending_network" ||
+      gameplaySession.status === "booting"
+    ) {
+      setState({
+        status: "loading",
+        message:
+          gameplaySession.status === "pending_network"
+            ? "Waiting for network…"
+            : "Establishing session…",
+      });
+      return;
+    }
+
+    if (gameplaySession.status === "no_api_base") {
+      setState({
+        status: "error",
+        message:
+          "Gameplay API is not configured. Set VITE_API_BASE_URL for live data.",
+      });
+      return;
+    }
+
+    if (gameplaySession.status === "error") {
+      setState({
+        status: "error",
+        message: gameplaySession.message,
+      });
+      return;
+    }
+
     setState({
       status: "loading",
       message: "Loading tavern state…",
     });
 
-    const client = createApiClient(apiBase);
+    const client = createBearerApiClient(apiBase, gameplaySession.sessionId);
     const ac = new AbortController();
     const timeoutId = window.setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS);
 
@@ -116,7 +158,7 @@ export function useTavernHomeState(
       ac.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [apiBase, gate.blocked, gate.message, tavernId]);
+  }, [apiBase, gate.blocked, gate.message, tavernId, gameplaySession]);
 
   return state;
 }
