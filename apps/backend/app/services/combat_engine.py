@@ -89,7 +89,9 @@ class BattleRoomState:
     def consume_skill(self, actor_entity_id: str, spec: SkillSpec) -> None:
         self.command_tick += 1
         cooldown_steps = COOLDOWN_STEPS[spec.cooldown]
-        self.cooldown_until_tick[(actor_entity_id, spec.skill_id)] = self.command_tick + cooldown_steps
+        self.cooldown_until_tick[(actor_entity_id, spec.skill_id)] = (
+            self.command_tick + cooldown_steps
+        )
 
 
 @dataclass(frozen=True)

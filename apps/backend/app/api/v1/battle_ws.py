@@ -16,9 +16,8 @@ from app.api.deps import parse_bearer_session_id
 from app.db import get_db
 from app.errors import ApiError
 from app.models.party_raid import Party, PartyMember
-from app.services import combat_engine
+from app.services import combat_engine, game_audit
 from app.services import command_dedup as dedup_service
-from app.services import game_audit
 from app.services.session import assert_active_session_player_id
 
 router = APIRouter()
@@ -184,7 +183,12 @@ def _error_message(
     }
 
 
-def _snapshot(room_id: str, lobby_id: str, room: BattleRoom, raid_lead_player_id: str) -> dict[str, Any]:
+def _snapshot(
+    room_id: str,
+    lobby_id: str,
+    room: BattleRoom,
+    raid_lead_player_id: str,
+) -> dict[str, Any]:
     entities: list[dict[str, Any]] = []
     for entity in room.entities.values():
         entities.append(
@@ -210,7 +214,9 @@ def _snapshot(room_id: str, lobby_id: str, room: BattleRoom, raid_lead_player_id
             "battle_id": room_id,
             "lobby_id": lobby_id,
             "phase": room.state.phase,
-            "party_order": [entity_id for entity_id, team in room.entity_teams.items() if team == "ally"],
+            "party_order": [
+                entity_id for entity_id, team in room.entity_teams.items() if team == "ally"
+            ],
             "raid_lead_player_id": raid_lead_player_id,
             "entities": entities,
             "links": [],
@@ -237,7 +243,9 @@ async def battle_room_ws(
         return
 
     room = await STORE.get_or_create(battle_id, members)
-    raid_lead_player_id = str(next((m.player_id for m in members if m.is_raid_lead), members[0].player_id))
+    raid_lead_player_id = str(
+        next((m.player_id for m in members if m.is_raid_lead), members[0].player_id)
+    )
     await websocket.send_json(_snapshot(battle_id, str(party.id), room, raid_lead_player_id))
 
     actor_entity_id = room.player_actor_map.get(str(player_id))
@@ -376,7 +384,9 @@ async def battle_room_ws(
             continue
 
         event_seq = room.state.issue_server_seq()
-        dedup_service.finalize_command_dedup_accepted(db, dedup_result.row, original_server_seq=event_seq)
+        dedup_service.finalize_command_dedup_accepted(
+            db, dedup_result.row, original_server_seq=event_seq
+        )
         game_audit.record_game_audit_event(
             db,
             event_name="battle.skill_resolved",

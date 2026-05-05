@@ -38,7 +38,9 @@ def _create_party(client: TestClient, session_id: uuid.UUID, role_id: str) -> st
     return created.json()["id"]
 
 
-def _command(command_id: str, room_id: str, actor_id: str, skill_id: str, target_id: str) -> dict[str, object]:
+def _command(
+    command_id: str, room_id: str, actor_id: str, skill_id: str, target_id: str
+) -> dict[str, object]:
     return {
         "protocol": "ptr.ws.v1",
         "kind": "command",
@@ -54,12 +56,16 @@ def _command(command_id: str, room_id: str, actor_id: str, skill_id: str, target
     }
 
 
-def test_battle_ws_valid_path_emits_event_and_result(session_client: TestClient, db_session) -> None:
+def test_battle_ws_valid_path_emits_event_and_result(
+    session_client: TestClient, db_session
+) -> None:
     player_id, session_id = _make_player_with_session(db_session, "BattleOwner")
     db_session.commit()
     room_id = _create_party(session_client, session_id, "vanguard")
     actor_id = f"player:{player_id}"
-    with session_client.websocket_connect(f"/v1/ws/battles/{room_id}?session_id={session_id}") as ws:
+    with session_client.websocket_connect(
+        f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    ) as ws:
         snapshot = ws.receive_json()
         assert snapshot["type"] == "battle.snapshot"
         ws.send_json(
@@ -84,7 +90,9 @@ def test_battle_ws_invalid_target_and_cooldown(session_client: TestClient, db_se
     db_session.commit()
     room_id = _create_party(session_client, session_id, "vanguard")
     actor_id = f"player:{player_id}"
-    with session_client.websocket_connect(f"/v1/ws/battles/{room_id}?session_id={session_id}") as ws:
+    with session_client.websocket_connect(
+        f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    ) as ws:
         ws.receive_json()
         ws.send_json(
             _command(
@@ -130,7 +138,9 @@ def test_battle_ws_duplicate_and_conflict(session_client: TestClient, db_session
     db_session.commit()
     room_id = _create_party(session_client, session_id, "signal_bard")
     actor_id = f"player:{player_id}"
-    with session_client.websocket_connect(f"/v1/ws/battles/{room_id}?session_id={session_id}") as ws:
+    with session_client.websocket_connect(
+        f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    ) as ws:
         ws.receive_json()
         first = _command(
             command_id="cmd-dup",
