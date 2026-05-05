@@ -51,7 +51,11 @@ def ensure_tavern(db: Session, tavern_id: uuid.UUID) -> Tavern:
     return tavern
 
 
-def ensure_player_tavern_state(db: Session, player_id: uuid.UUID, tavern_id: uuid.UUID) -> PlayerTavernState:
+def ensure_player_tavern_state(
+    db: Session,
+    player_id: uuid.UUID,
+    tavern_id: uuid.UUID,
+) -> PlayerTavernState:
     row = db.scalar(
         select(PlayerTavernState).where(
             PlayerTavernState.player_id == player_id,
@@ -96,7 +100,11 @@ def _recent_chronicle_entries(
     ]
 
 
-def read_tavern_state(db: Session, player_id: uuid.UUID, tavern_id: uuid.UUID) -> PlayerTavernStateOut:
+def read_tavern_state(
+    db: Session,
+    player_id: uuid.UUID,
+    tavern_id: uuid.UUID,
+) -> PlayerTavernStateOut:
     tavern = ensure_tavern(db, tavern_id)
     state = ensure_player_tavern_state(db, player_id, tavern_id)
     chronicle = _recent_chronicle_entries(db, player_id, tavern_id)
