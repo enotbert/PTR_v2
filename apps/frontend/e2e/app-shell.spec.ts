@@ -217,4 +217,36 @@ test.describe("app shell (mobile viewport)", () => {
 
     expect(rendered).toBe(true);
   });
+
+  test("renders combat HUD skill states and feedback interaction", async ({
+    page,
+  }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+    await mockTavernState(page);
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("combat-skill-bar")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("combat-target-hint")).toContainText(
+      /out of lane range/i,
+    );
+
+    await expect(page.getByTestId("combat-skill-quick-shot")).toBeEnabled();
+    await expect(page.getByTestId("combat-skill-heavy-slash")).toBeDisabled();
+    await expect(page.getByTestId("combat-skill-focus-stance")).toBeDisabled();
+
+    await page.getByTestId("combat-skill-quick-shot").click();
+    await expect(page.getByTestId("combat-feedback")).toContainText(
+      /quick shot used on sentry/i,
+    );
+    await expect(page.getByTestId("combat-resource")).toContainText(/3$/);
+  });
 });
