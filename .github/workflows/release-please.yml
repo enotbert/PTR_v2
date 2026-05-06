@@ -22,9 +22,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          # Use default GITHUB_TOKEN. NOTE: PRs created by GITHUB_TOKEN do NOT
-          # trigger downstream workflows (incl. our required `ci` check). To
-          # satisfy branch protection on the release PR, the maintainer must
-          # close+reopen the PR (or push an empty commit) to trigger CI.
-          # See ADR-0002 for the long-term plan (PAT or GitHub App).
-          # token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Prefer dedicated token so release PRs trigger downstream workflows.
+          # Fallback to default github.token to keep workflow operational when
+          # RELEASE_PLEASE_TOKEN is not configured yet.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
