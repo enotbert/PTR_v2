@@ -15,6 +15,20 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ptr
+          POSTGRES_PASSWORD: ptr_dev_demo
+          POSTGRES_DB: ptr_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ptr -d ptr_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -75,9 +89,14 @@ jobs:
           cache-dependency-glob: "apps/backend/uv.lock"
 
       - name: Ruff + pytest (apps/backend)
+        env:
+          DATABASE_URL: postgresql://ptr:ptr_dev_demo@127.0.0.1:5432/ptr_dev
+          PYTHONPATH: .
         working-directory: apps/backend
         run: |
           uv sync --frozen --group dev
+          uv run alembic upgrade head
+          uv run python scripts/check_db_schema_sync.py
           uv run ruff check .
           uv run ruff format --check .
           uv run pytest -q
