@@ -24,6 +24,9 @@ class RaidResolution:
     status: str
     reward_issued_points: int
     reward_record_ids: list[str]
+    claim_status: str
+    newly_issued_reward_record_ids: list[str]
+    existing_reward_record_ids: list[str]
     approved_failed_progress: bool
 
 
@@ -31,14 +34,25 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-def _get_or_create_active_raid(db: Session, party_id: uuid.UUID) -> Raid:
+def _get_active_raid(db: Session, party_id: uuid.UUID) -> Raid | None:
     stmt: Select[tuple[Raid]] = (
         select(Raid)
         .where(Raid.party_id == party_id, Raid.status.in_(("pending", "active")))
         .order_by(Raid.id.desc())
         .limit(1)
     )
-    raid = db.execute(stmt).scalar_one_or_none()
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def _latest_raid(db: Session, party_id: uuid.UUID) -> Raid | None:
+    stmt: Select[tuple[Raid]] = (
+        select(Raid).where(Raid.party_id == party_id).order_by(Raid.id.desc()).limit(1)
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def _get_or_create_active_raid(db: Session, party_id: uuid.UUID) -> Raid:
+    raid = _get_active_raid(db, party_id)
     if raid is not None:
         return raid
     raid = Raid(
@@ -74,6 +88,19 @@ def _raid_members(db: Session, party_id: uuid.UUID) -> list[PartyMember]:
     return list(db.execute(stmt).scalars().all())
 
 
+def _is_active_party_member(db: Session, *, party_id: uuid.UUID, player_id: uuid.UUID) -> bool:
+    stmt: Select[tuple[PartyMember]] = (
+        select(PartyMember)
+        .where(
+            PartyMember.party_id == party_id,
+            PartyMember.player_id == player_id,
+            PartyMember.left_at.is_(None),
+        )
+        .limit(1)
+    )
+    return db.execute(stmt).scalar_one_or_none() is not None
+
+
 def _existing_reward(
     db: Session, *, player_id: uuid.UUID, tavern_id: uuid.UUID, raid_id: uuid.UUID
 ) -> TavernContribution | None:
@@ -103,9 +130,38 @@ def resolve_raid_outcome_and_issue_rewards(
     party = db.get(Party, party_id)
     if party is None:
         raise ValueError("PARTY_NOT_FOUND")
-    raid = _get_or_create_active_raid(db, party_id)
+    if not _is_active_party_member(db, party_id=party_id, player_id=triggered_by_player_id):
+        raise ValueError("PLAYER_NOT_IN_PARTY")
+    active_raid = _get_active_raid(db, party_id)
+    if active_raid is not None:
+        raid = active_raid
+        already_finalized = False
+    else:
+        latest_raid = _latest_raid(db, party_id)
+        if latest_raid is not None and latest_raid.status in ("completed", "failed"):
+            raid = latest_raid
+            already_finalized = True
+        else:
+            raid = _get_or_create_active_raid(db, party_id)
+            already_finalized = False
 
-    if enemies_defeated:
+    if already_finalized:
+        status = raid.status
+        if status == "completed":
+            reward_points = COMPLETED_REWARD_POINTS
+        else:
+            existing_failed_reward = False
+            for member in _raid_members(db, party_id):
+                if (
+                    _existing_reward(
+                        db, player_id=member.player_id, tavern_id=party.tavern_id, raid_id=raid.id
+                    )
+                    is not None
+                ):
+                    existing_failed_reward = True
+                    break
+            reward_points = FAILED_APPROVED_REWARD_POINTS if existing_failed_reward else 0
+    elif enemies_defeated:
         status = "completed"
         reward_points = COMPLETED_REWARD_POINTS
     elif allies_defeated or approved_failed_progress:
@@ -114,19 +170,24 @@ def resolve_raid_outcome_and_issue_rewards(
     else:
         raise ValueError("OUTCOME_NOT_FINAL")
 
-    raid.status = status
-    raid.started_at = raid.started_at or _now()
-    raid.ended_at = _now()
-    db.add(raid)
+    if not already_finalized:
+        raid.status = status
+        raid.started_at = raid.started_at or _now()
+        raid.ended_at = _now()
+        db.add(raid)
 
     reward_record_ids: list[str] = []
+    newly_issued_reward_record_ids: list[str] = []
+    existing_reward_record_ids: list[str] = []
     if reward_points > 0:
         for member in _raid_members(db, party_id):
             existing = _existing_reward(
                 db, player_id=member.player_id, tavern_id=party.tavern_id, raid_id=raid.id
             )
             if existing is not None:
-                reward_record_ids.append(str(existing.id))
+                existing_id = str(existing.id)
+                reward_record_ids.append(existing_id)
+                existing_reward_record_ids.append(existing_id)
                 continue
             state = add_tavern_contribution(
                 db,
@@ -138,7 +199,13 @@ def resolve_raid_outcome_and_issue_rewards(
             )
             latest_id = state.chronicle[0].id if state.chronicle else None
             if latest_id is not None:
-                reward_record_ids.append(str(latest_id))
+                latest_id_str = str(latest_id)
+                reward_record_ids.append(latest_id_str)
+                newly_issued_reward_record_ids.append(latest_id_str)
+
+    claim_status = "not_applicable"
+    if reward_points > 0:
+        claim_status = "claimed" if newly_issued_reward_record_ids else "already_claimed"
 
     game_audit.record_game_audit_event(
         db,
@@ -151,7 +218,11 @@ def resolve_raid_outcome_and_issue_rewards(
             "status": status,
             "approved_failed_progress": approved_failed_progress,
             "reward_points_per_member": reward_points,
+            "claim_status": claim_status,
+            "idempotency_key": f"raid:{raid.id}",
             "reward_record_ids": reward_record_ids,
+            "newly_issued_reward_record_ids": newly_issued_reward_record_ids,
+            "existing_reward_record_ids": existing_reward_record_ids,
         },
     )
     db.flush()
@@ -160,5 +231,8 @@ def resolve_raid_outcome_and_issue_rewards(
         status=status,
         reward_issued_points=reward_points,
         reward_record_ids=reward_record_ids,
+        claim_status=claim_status,
+        newly_issued_reward_record_ids=newly_issued_reward_record_ids,
+        existing_reward_record_ids=existing_reward_record_ids,
         approved_failed_progress=approved_failed_progress,
     )

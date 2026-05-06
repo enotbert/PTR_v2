@@ -606,7 +606,10 @@ async def _handle_finalize_raid(
         "status": outcome.status,
         "approved_failed_progress": outcome.approved_failed_progress,
         "reward_points_per_member": outcome.reward_issued_points,
+        "claim_status": outcome.claim_status,
         "reward_record_ids": outcome.reward_record_ids,
+        "newly_issued_reward_record_ids": outcome.newly_issued_reward_record_ids,
+        "existing_reward_record_ids": outcome.existing_reward_record_ids,
     }
     dedup_service.finalize_command_dedup_accepted(
         db, dedup_result.row, original_server_seq=event_seq
