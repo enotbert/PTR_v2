@@ -4,6 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from app.models.identity import Player, PlayerSession
+from app.models.tavern import TavernContribution
 from fastapi.testclient import TestClient
 
 
@@ -257,6 +258,20 @@ def _phrase(phrase_id: str, room_id: str, cmd_suffix: str) -> dict[str, object]:
     }
 
 
+def _finalize_raid(
+    room_id: str, cmd_suffix: str, approve_failed_progress: bool
+) -> dict[str, object]:
+    return {
+        "protocol": "ptr.ws.v1",
+        "kind": "command",
+        "type": "combat.finalize_raid",
+        "room": {"kind": "battle", "id": room_id},
+        "client_command_id": f"cmd-fr-{cmd_suffix}",
+        "sent_at": "2026-05-05T18:05:03.000Z",
+        "payload": {"approve_failed_progress": approve_failed_progress},
+    }
+
+
 def test_battle_ws_raid_lead_command_broadcasts_and_snapshots_mark(
     session_client: TestClient,
     db_session,
@@ -436,3 +451,97 @@ def test_battle_ws_reconnect_receives_fresh_snapshot(
         reconnect_snapshot = ws_reconnect.receive_json()
         assert reconnect_snapshot["type"] == "battle.snapshot"
         assert reconnect_snapshot["server_seq"] > first_snapshot_seq
+
+
+def test_battle_ws_finalize_raid_issues_rewards_and_persists_contributions(
+    session_client: TestClient, db_session
+) -> None:
+    owner_id, owner_session = _make_player_with_session(db_session, "RaidLead")
+    joiner_id, joiner_session = _make_player_with_session(db_session, "RaidJoiner")
+    db_session.commit()
+    room_id = _create_party(session_client, owner_session, "vanguard")
+    _join_party(session_client, room_id, joiner_session, "signal_bard")
+    actor_id = f"player:{owner_id}"
+
+    owner_path = f"/v1/ws/battles/{room_id}?session_id={owner_session}"
+    with session_client.websocket_connect(owner_path) as ws_owner:
+        ws_owner.receive_json()
+        strike_plan = (
+            ("enemy:rustbound_striker", 8),
+            ("enemy:signal_leech", 8),
+            ("enemy:circuit_mender", 8),
+            ("enemy:route_warden", 12),
+        )
+        cmd_idx = 0
+        for target_enemy, hits in strike_plan:
+            for _ in range(hits):
+                ws_owner.send_json(
+                    _command(
+                        command_id=f"cmd-kill-{cmd_idx}",
+                        room_id=room_id,
+                        actor_id=actor_id,
+                        skill_id="vanguard_strike",
+                        target_id=target_enemy,
+                    )
+                )
+                ws_owner.receive_json()
+                ws_owner.receive_json()
+                ws_owner.send_json(
+                    _command(
+                        command_id=f"cmd-fill-{cmd_idx}",
+                        room_id=room_id,
+                        actor_id=actor_id,
+                        skill_id="mend_protocol",
+                        target_id=actor_id,
+                    )
+                )
+                ws_owner.receive_json()
+                ws_owner.receive_json()
+                cmd_idx += 1
+
+        ws_owner.send_json(_finalize_raid(room_id, "ok", approve_failed_progress=False))
+        event_owner = ws_owner.receive_json()
+        result_owner = ws_owner.receive_json()
+        assert event_owner["payload"]["event_type"] == "raid_outcome_resolved"
+        assert event_owner["payload"]["status"] == "completed"
+        assert event_owner["payload"]["reward_points_per_member"] == 30
+        assert result_owner["payload"]["status"] == "accepted"
+
+    rows = (
+        db_session.query(TavernContribution)
+        .filter(TavernContribution.source_type == "raid_reward")
+        .all()
+    )
+    rewarded_players = {row.player_id for row in rows}
+    assert owner_id in rewarded_players
+    assert joiner_id in rewarded_players
+
+
+def test_battle_ws_finalize_raid_rejects_non_final_outcome_without_approval(
+    session_client: TestClient, db_session
+) -> None:
+    player_id, session_id = _make_player_with_session(db_session, "RaidNotDone")
+    db_session.commit()
+    room_id = _create_party(session_client, session_id, "vanguard")
+    path = f"/v1/ws/battles/{room_id}?session_id={session_id}"
+    with session_client.websocket_connect(path) as ws:
+        ws.receive_json()
+        ws.send_json(_finalize_raid(room_id, "blocked", approve_failed_progress=False))
+        err = ws.receive_json()
+        assert err["type"] == "command.error"
+        assert err["payload"]["code"] == "OUTCOME_NOT_FINAL"
+
+        ws.send_json(_finalize_raid(room_id, "approved", approve_failed_progress=True))
+        event = ws.receive_json()
+        result = ws.receive_json()
+        assert event["type"] == "battle.event"
+        assert event["payload"]["status"] == "failed"
+        assert event["payload"]["reward_points_per_member"] == 10
+        assert result["payload"]["status"] == "accepted"
+
+    rows = (
+        db_session.query(TavernContribution)
+        .filter(TavernContribution.source_type == "raid_reward")
+        .all()
+    )
+    assert any(row.player_id == player_id and row.amount == 10 for row in rows)

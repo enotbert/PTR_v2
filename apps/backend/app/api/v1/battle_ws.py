@@ -17,7 +17,7 @@ from app.api.deps import parse_bearer_session_id
 from app.db import get_db
 from app.errors import ApiError
 from app.models.party_raid import Party, PartyMember
-from app.services import combat_engine, game_audit
+from app.services import combat_engine, game_audit, raid_rewards
 from app.services import command_dedup as dedup_service
 from app.services.session import assert_active_session_player_id
 
@@ -397,6 +397,7 @@ async def _handle_use_skill(
         return
 
     try:
+        raid_rewards.mark_raid_active_for_party(db, uuid.UUID(battle_id))
         resolution = combat_engine.resolve_use_skill(
             payload=payload,
             actor_entity_id=actor_entity_id,
@@ -438,6 +439,16 @@ async def _handle_use_skill(
         )
         return
 
+    target_entity_id = str(resolution.event_payload.get("target_entity_id", ""))
+    if (
+        resolution.event_payload.get("result_type") == "damage"
+        and target_entity_id in room.entities
+        and room.entity_teams.get(target_entity_id) == "enemy"
+    ):
+        target = room.entities[target_entity_id]
+        damage_value = int(resolution.event_payload.get("value", 0))
+        target.hp_current = max(0, target.hp_current - damage_value)
+
     event_seq = room.state.issue_server_seq()
     dedup_service.finalize_command_dedup_accepted(
         db, dedup_result.row, original_server_seq=event_seq
@@ -465,6 +476,164 @@ async def _handle_use_skill(
             "server_seq": event_seq,
             "sent_at": _iso_now(),
             "payload": resolution.event_payload,
+        },
+    )
+    result_seq = room.state.issue_server_seq()
+    await websocket.send_json(
+        _result_message(
+            room_id=battle_id,
+            server_seq=result_seq,
+            client_command_id=client_command_id,
+            status_value="accepted",
+            command_type=command_type,
+            applied_server_seq=event_seq,
+            original_server_seq=event_seq,
+        ),
+    )
+
+
+async def _handle_finalize_raid(
+    websocket: WebSocket,
+    *,
+    battle_id: str,
+    room: BattleRoom,
+    db: Session,
+    player_id: uuid.UUID,
+    session_id: uuid.UUID,
+    payload: dict[str, Any],
+    client_command_id: str,
+) -> None:
+    command_type = "combat.finalize_raid"
+    if str(player_id) != room.raid_lead_player_id:
+        await _send_command_error(
+            websocket,
+            battle_id=battle_id,
+            room=room,
+            client_command_id=client_command_id,
+            command_type=command_type,
+            code="NOT_RAID_LEAD",
+            reason="Only raid lead can finalize raid outcome.",
+            retryable=False,
+        )
+        return
+
+    approved_failed_progress = bool(payload.get("approve_failed_progress", False))
+    payload_hash = dedup_service.canonical_payload_hash(payload)
+    try:
+        dedup_result = dedup_service.reserve_command_dedup_slot(
+            db,
+            player_id=player_id,
+            room_kind=ROOM_KIND,
+            room_id=battle_id,
+            client_command_id=client_command_id,
+            command_type=command_type,
+            payload_hash=payload_hash,
+        )
+    except ApiError:
+        await _send_command_error(
+            websocket,
+            battle_id=battle_id,
+            room=room,
+            client_command_id=client_command_id,
+            command_type=command_type,
+            code="IDEMPOTENCY_CONFLICT",
+            reason="client_command_id was reused with another payload.",
+            retryable=False,
+        )
+        return
+
+    if isinstance(dedup_result, dedup_service.CommandDedupDuplicate):
+        seq = room.state.issue_server_seq()
+        status_value = (
+            "duplicate"
+            if dedup_result.row.result_kind == dedup_service.RESULT_ACCEPTED
+            else "accepted"
+        )
+        await websocket.send_json(
+            _result_message(
+                room_id=battle_id,
+                server_seq=seq,
+                client_command_id=client_command_id,
+                status_value=status_value,
+                command_type=command_type,
+                applied_server_seq=dedup_result.row.original_server_seq,
+                original_server_seq=dedup_result.row.original_server_seq,
+            ),
+        )
+        return
+
+    enemies_defeated = all(
+        entity.hp_current <= 0
+        for entity_id, entity in room.entities.items()
+        if room.entity_teams[entity_id] == "enemy"
+    )
+    allies_defeated = all(
+        entity.hp_current <= 0
+        for entity_id, entity in room.entities.items()
+        if room.entity_teams[entity_id] == "ally"
+    )
+    try:
+        outcome = raid_rewards.resolve_raid_outcome_and_issue_rewards(
+            db,
+            party_id=uuid.UUID(battle_id),
+            enemies_defeated=enemies_defeated,
+            allies_defeated=allies_defeated,
+            approved_failed_progress=approved_failed_progress,
+            triggered_by_player_id=player_id,
+            session_id=session_id,
+        )
+    except ValueError as exc:
+        dedup_service.mark_command_dedup_rejected(db, dedup_result.row)
+        db.commit()
+        code = str(exc)
+        await _send_command_error(
+            websocket,
+            battle_id=battle_id,
+            room=room,
+            client_command_id=client_command_id,
+            command_type=command_type,
+            code=code,
+            reason="Raid outcome cannot be finalized yet.",
+            retryable=False,
+        )
+        return
+
+    event_seq = room.state.issue_server_seq()
+    room.state.phase = "resolved"
+    event_payload: dict[str, Any] = {
+        "event_type": "raid_outcome_resolved",
+        "raid_id": str(outcome.raid_id),
+        "status": outcome.status,
+        "approved_failed_progress": outcome.approved_failed_progress,
+        "reward_points_per_member": outcome.reward_issued_points,
+        "reward_record_ids": outcome.reward_record_ids,
+    }
+    dedup_service.finalize_command_dedup_accepted(
+        db, dedup_result.row, original_server_seq=event_seq
+    )
+    game_audit.record_game_audit_event(
+        db,
+        event_name="battle.raid_outcome_resolved",
+        player_id=player_id,
+        session_id=session_id,
+        payload={
+            "battle_id": battle_id,
+            "command_type": command_type,
+            "client_command_id": client_command_id,
+            "event_payload": event_payload,
+        },
+    )
+    db.commit()
+    await _broadcast_room_message(
+        battle_id,
+        {
+            "protocol": PROTOCOL,
+            "kind": "event",
+            "type": "battle.event",
+            "room": {"kind": ROOM_KIND, "id": battle_id},
+            "server_seq": event_seq,
+            "sent_at": _iso_now(),
+            "payload": event_payload,
         },
     )
     result_seq = room.state.issue_server_seq()
@@ -1041,6 +1210,17 @@ async def battle_room_ws(
             )
         elif msg_type == "combat.send_quick_phrase":
             await _handle_send_quick_phrase(
+                websocket,
+                battle_id=battle_id,
+                room=room,
+                db=db,
+                player_id=player_id,
+                session_id=session_id,
+                payload=payload,
+                client_command_id=command_id,
+            )
+        elif msg_type == "combat.finalize_raid":
+            await _handle_finalize_raid(
                 websocket,
                 battle_id=battle_id,
                 room=room,
