@@ -63,4 +63,33 @@ describe("reduceBattleLiveMessage", () => {
     };
     expect(reduceBattleLiveMessage(afterSnap, ev)).toBeNull();
   });
+
+  it("captures raid outcome payload for reward screen state", () => {
+    const afterSnap = reduceBattleLiveMessage(null, BASE_SNAPSHOT);
+    expect(afterSnap).not.toBeNull();
+    const ev: BattleLiveMessage = {
+      kind: "event",
+      type: "battle.event",
+      server_seq: 2,
+      payload: {
+        event_type: "raid_outcome_resolved",
+        raid_id: "raid-1",
+        status: "completed",
+        approved_failed_progress: false,
+        reward_points_per_member: 30,
+        claim_status: "already_claimed",
+        reward_record_ids: ["reward-1"],
+        newly_issued_reward_record_ids: [],
+        existing_reward_record_ids: ["reward-1"],
+      },
+    };
+    const next = reduceBattleLiveMessage(afterSnap, ev);
+    expect(next?.raidOutcome).toMatchObject({
+      raidId: "raid-1",
+      status: "completed",
+      rewardPointsPerMember: 30,
+      claimStatus: "already_claimed",
+      rewardRecordIds: ["reward-1"],
+    });
+  });
 });

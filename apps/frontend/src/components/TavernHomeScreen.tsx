@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createBearerApiClient } from "../api/client";
 import { mapBattleSnapshotToCanvas } from "../battle/mapBattleSnapshotToCanvas";
 import type { components } from "../generated/api-types";
@@ -31,6 +31,14 @@ type EntryState =
   | { status: "creating"; message: string }
   | { status: "error"; message: string }
   | { status: "ready"; message: string; raid: RaidDetail };
+
+type RewardClaimUiState =
+  | { status: "idle"; message: null }
+  | { status: "claimable"; message: string }
+  | { status: "claiming"; message: string }
+  | { status: "claimed"; message: string }
+  | { status: "already_claimed"; message: string }
+  | { status: "error"; message: string };
 
 const DEFAULT_TAVERN_ID = "00000000-0000-0000-0000-000000000001";
 const DEFAULT_FEEDBACK = "Select a skill, then tap a target in the arena.";
@@ -77,6 +85,31 @@ function formatSource(source: string | null | undefined): string {
   return source.replaceAll("_", " ");
 }
 
+function initialClaimUiState(
+  claimStatus: string,
+  rewardPointsPerMember: number,
+): RewardClaimUiState {
+  if (claimStatus === "already_claimed") {
+    return {
+      status: "already_claimed",
+      message: "Reward was already claimed earlier for this raid.",
+    };
+  }
+  if (claimStatus === "claimed") {
+    return {
+      status: "claimed",
+      message: "Reward has been claimed and added to tavern contribution.",
+    };
+  }
+  if (rewardPointsPerMember > 0) {
+    return {
+      status: "claimable",
+      message: "Reward is available. Claim to add it to your account.",
+    };
+  }
+  return { status: "idle", message: null };
+}
+
 export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
   const home = useTavernHomeState(connectivity, gameplaySession);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
@@ -88,6 +121,10 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
   const [resource, setResource] = useState(5);
   const [feedback, setFeedback] = useState(DEFAULT_FEEDBACK);
   const [entry, setEntry] = useState<EntryState>({
+    status: "idle",
+    message: null,
+  });
+  const [rewardClaim, setRewardClaim] = useState<RewardClaimUiState>({
     status: "idle",
     message: null,
   });
@@ -184,7 +221,20 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
     live.store.snapshot.raid_lead_player_id === gameplaySession.playerId;
 
   const commsFeed = live.status === "ready" ? live.store.feed : [];
+  const raidOutcome = live.status === "ready" ? live.store.raidOutcome : null;
   const combatCommsConnected = live.status === "ready";
+
+  useEffect(() => {
+    if (!raidOutcome) {
+      return;
+    }
+    setRewardClaim(
+      initialClaimUiState(
+        raidOutcome.claimStatus,
+        raidOutcome.rewardPointsPerMember,
+      ),
+    );
+  }, [raidOutcome]);
 
   const handleStartFirstRaid = useCallback(async () => {
     if (home.status !== "ready") {
@@ -304,6 +354,67 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
     },
     [demoSkills, selectedSkillId],
   );
+
+  const handleClaimReward = useCallback(async () => {
+    if (!raidOutcome || rewardClaim.status !== "claimable") {
+      return;
+    }
+    if (!apiBaseUrl) {
+      setRewardClaim({
+        status: "error",
+        message: "Gameplay API is not configured. Cannot claim reward.",
+      });
+      return;
+    }
+    if (gameplaySession.status !== "ready") {
+      setRewardClaim({
+        status: "error",
+        message: "Session is unavailable. Reconnect and try claiming again.",
+      });
+      return;
+    }
+    const rewardRecordId = raidOutcome.rewardRecordIds[0];
+    if (!rewardRecordId) {
+      setRewardClaim({
+        status: "error",
+        message: "No reward reference found for this raid outcome.",
+      });
+      return;
+    }
+    setRewardClaim({
+      status: "claiming",
+      message: "Claiming reward…",
+    });
+    const client = createBearerApiClient(apiBaseUrl, gameplaySession.sessionId);
+    try {
+      const { response } = await client.POST("/v1/rewards/{reward_id}/claims", {
+        params: { path: { reward_id: rewardRecordId } },
+      });
+      if (response?.ok) {
+        setRewardClaim({
+          status: "claimed",
+          message: "Reward successfully claimed.",
+        });
+        return;
+      }
+      if (response?.status === 409) {
+        setRewardClaim({
+          status: "already_claimed",
+          message: "Reward was already claimed earlier.",
+        });
+        return;
+      }
+      setRewardClaim({
+        status: "error",
+        message: "Reward claim failed. Please retry in a moment.",
+      });
+    } catch {
+      setRewardClaim({
+        status: "error",
+        message: "Reward claim failed. Please retry in a moment.",
+      });
+    }
+  }, [apiBaseUrl, gameplaySession, raidOutcome, rewardClaim.status]);
 
   if (home.status === "blocked") {
     return (
@@ -454,6 +565,85 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
           </button>
         )}
       </article>
+
+      {raidOutcome ? (
+        <article className="tavern-card" data-testid="raid-result-reward">
+          <h2 className="tavern-card__title">Raid result and reward</h2>
+          <p className="tavern-card__strong">
+            {raidOutcome.status === "completed"
+              ? "Raid completed"
+              : "Raid failed"}
+          </p>
+          <p className="tavern-card__meta">
+            Contribution: +{raidOutcome.rewardPointsPerMember} points per member
+          </p>
+          <p className="tavern-card__meta">Raid ID: {raidOutcome.raidId}</p>
+          {rewardClaim.message ? (
+            <p
+              className={
+                rewardClaim.status === "error"
+                  ? "tavern-home__status tavern-home__status--error"
+                  : "tavern-home__status"
+              }
+              data-testid="reward-claim-state"
+            >
+              {rewardClaim.message}
+            </p>
+          ) : null}
+          {rewardClaim.status === "claimable" ? (
+            <button
+              type="button"
+              className="btn btn--primary"
+              data-testid="claim-reward-cta"
+              onClick={() => {
+                void handleClaimReward();
+              }}
+            >
+              Claim reward
+            </button>
+          ) : rewardClaim.status === "claiming" ? (
+            <button
+              type="button"
+              className="btn btn--primary"
+              data-testid="claim-reward-cta"
+              disabled
+              aria-disabled="true"
+            >
+              Claiming reward…
+            </button>
+          ) : null}
+          <div className="raid-result-actions">
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="cta-repeat-raid"
+            >
+              Repeat raid
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="cta-contribute"
+            >
+              Contribute in tavern
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="cta-invite-share"
+            >
+              Invite and share
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              data-testid="cta-return-tavern"
+            >
+              Return to tavern
+            </button>
+          </div>
+        </article>
+      ) : null}
 
       <article className="tavern-card" data-testid="tavern-project">
         <h2 className="tavern-card__title">Current project</h2>

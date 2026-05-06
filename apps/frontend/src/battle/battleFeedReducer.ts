@@ -9,6 +9,16 @@ export type BattleLiveStore = {
   lastServerSeq: number;
   feed: BattleFeedEntry[];
   raidLeadHighlightEntityId: string | null;
+  raidOutcome: {
+    raidId: string;
+    status: string;
+    approvedFailedProgress: boolean;
+    rewardPointsPerMember: number;
+    claimStatus: string;
+    rewardRecordIds: string[];
+    newlyIssuedRewardRecordIds: string[];
+    existingRewardRecordIds: string[];
+  } | null;
 };
 
 const MAX_FEED = 40;
@@ -39,6 +49,7 @@ export function reduceBattleLiveMessage(
       lastServerSeq: message.server_seq,
       feed: current?.feed ?? [],
       raidLeadHighlightEntityId: highlight,
+      raidOutcome: current?.raidOutcome ?? null,
     };
   }
 
@@ -55,6 +66,7 @@ export function reduceBattleLiveMessage(
   const payload = message.payload;
   let feed = current.feed;
   let highlight = current.raidLeadHighlightEntityId;
+  let raidOutcome = current.raidOutcome;
 
   if (payload.event_type === "raid_lead_command_sent") {
     const targetId = payload.target?.entity_id ?? null;
@@ -80,12 +92,32 @@ export function reduceBattleLiveMessage(
       playerId: String(payload.player_id ?? ""),
       phraseId: String(payload.phrase_id ?? ""),
     });
+  } else if (payload.event_type === "raid_outcome_resolved") {
+    raidOutcome = {
+      raidId: String(payload.raid_id ?? ""),
+      status: String(payload.status ?? "unknown"),
+      approvedFailedProgress: Boolean(payload.approved_failed_progress),
+      rewardPointsPerMember: Number(payload.reward_points_per_member ?? 0),
+      claimStatus: String(payload.claim_status ?? "not_applicable"),
+      rewardRecordIds: Array.isArray(payload.reward_record_ids)
+        ? payload.reward_record_ids.map(String)
+        : [],
+      newlyIssuedRewardRecordIds: Array.isArray(
+        payload.newly_issued_reward_record_ids,
+      )
+        ? payload.newly_issued_reward_record_ids.map(String)
+        : [],
+      existingRewardRecordIds: Array.isArray(payload.existing_reward_record_ids)
+        ? payload.existing_reward_record_ids.map(String)
+        : [],
+    };
   }
 
   return {
     snapshot: current.snapshot,
     feed,
     raidLeadHighlightEntityId: highlight,
+    raidOutcome,
     lastServerSeq: message.server_seq,
   };
 }

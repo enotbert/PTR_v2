@@ -19,6 +19,18 @@ export type BattleFeedEntry =
       phraseId: string;
     };
 
+export type RaidOutcomePayloadWire = {
+  event_type?: string;
+  raid_id?: string;
+  status?: string;
+  approved_failed_progress?: boolean;
+  reward_points_per_member?: number;
+  claim_status?: string;
+  reward_record_ids?: string[];
+  newly_issued_reward_record_ids?: string[];
+  existing_reward_record_ids?: string[];
+};
+
 export type SnapshotEntityWire = {
   entity_id: string;
   kind: string;
@@ -57,5 +69,5 @@ export type BattleLiveMessage =
         target?: { entity_id?: string } | null;
         emoji_id?: string;
         phrase_id?: string;
-      };
+      } & Partial<RaidOutcomePayloadWire>;
     };
