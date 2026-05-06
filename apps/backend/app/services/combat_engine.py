@@ -57,7 +57,7 @@ SKILLS: dict[str, SkillSpec] = {
 COOLDOWN_STEPS: dict[str, int] = {"short": 1, "medium": 2, "long": 3}
 
 
-@dataclass(frozen=True)
+@dataclass
 class BattleSnapshotEntity:
     entity_id: str
     kind: str
