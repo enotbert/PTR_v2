@@ -9,6 +9,7 @@
 - Проверка подключения из приложения: HTTP **`GET /health`** — при успешном `SELECT 1` возвращается `"postgres": "reachable"` (см. `apps/backend/app/main.py`).
 - **Alembic** в каталоге `apps/backend/`: `alembic.ini`, пакет `alembic/` с `env.py` и ревизиями в `alembic/versions/`. URL для миграций берётся из **`DATABASE_URL`**; строка `postgresql://…` приводится к виду **`postgresql+psycopg://…`** для SQLAlchemy 2 + psycopg3.
 - Ревизия **`7c8bb0c12f4a`** (после `e8f4a2b1c9d0`): таблицы **`command_dedup`** и **`game_audit_events`** (PTR-71, JSONB для `payload_json`).
+- Ревизия **`d4f0a6b8c201`** (после `7c8bb0c12f4a`): **`taverns`**, **`player_tavern_state`**, **`tavern_contributions`**, **`parties`**, **`party_members`**, **`raids`** — DDL для ORM tavern/party/raid (без этого `alembic upgrade head` не создаёт `taverns`, и `/v1/taverns/.../state` падает с `UndefinedTable`).
 
 ## Политика для агентов
 
@@ -47,6 +48,18 @@ docker compose --env-file .env.development run --rm backend uv run alembic curre
 ```bash
 docker compose --env-file .env.development run --rm backend uv run alembic upgrade head
 ```
+
+## Обязательный preflight после `upgrade head`
+
+Чтобы не пропустить рассинхрон между ORM-моделями и Alembic-ревизиями (кейс `UndefinedTable`), сразу после миграций выполните проверку:
+
+```bash
+docker compose --env-file .env.development run --rm \
+  -e DATABASE_URL=postgresql://ptr:ptr_dev_demo@postgres:5432/ptr_dev \
+  backend uv run python scripts/check_db_schema_sync.py
+```
+
+Скрипт сравнивает `Base.metadata.tables` и фактические таблицы в Postgres. Если хотя бы одна ORM-таблица отсутствует — завершает команду с non-zero exit code.
 
 ## Новая ревизия (разработчики)
 
