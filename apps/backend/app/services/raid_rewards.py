@@ -46,10 +46,7 @@ def _get_active_raid(db: Session, party_id: uuid.UUID) -> Raid | None:
 
 def _latest_raid(db: Session, party_id: uuid.UUID) -> Raid | None:
     stmt: Select[tuple[Raid]] = (
-        select(Raid)
-        .where(Raid.party_id == party_id)
-        .order_by(Raid.id.desc())
-        .limit(1)
+        select(Raid).where(Raid.party_id == party_id).order_by(Raid.id.desc()).limit(1)
     )
     return db.execute(stmt).scalar_one_or_none()
 
