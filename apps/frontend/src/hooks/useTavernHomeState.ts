@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createBearerApiClient } from "../api/client";
 import type { components } from "../generated/api-types";
@@ -38,10 +38,14 @@ function toErrorMessage(code: number | null): string {
 export function useTavernHomeState(
   connectivity: ConnectivityState,
   gameplaySession: GameplaySession,
-): TavernHomeState {
+): { state: TavernHomeState; refresh: () => void } {
   const apiBase = useMemo(() => getApiBase(), []);
   const tavernId = useMemo(() => getTavernId(), []);
   const gate = useGameplayActionGate(connectivity);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const refresh = useCallback(() => {
+    setRefreshVersion((value) => value + 1);
+  }, []);
 
   const [state, setState] = useState<TavernHomeState>({
     status: "loading",
@@ -104,7 +108,10 @@ export function useTavernHomeState(
 
     setState({
       status: "loading",
-      message: "Loading tavern state…",
+      message:
+        refreshVersion > 0
+          ? "Refreshing tavern state…"
+          : "Loading tavern state…",
     });
 
     const client = createBearerApiClient(apiBase, gameplaySession.sessionId);
@@ -158,7 +165,14 @@ export function useTavernHomeState(
       ac.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [apiBase, gate.blocked, gate.message, tavernId, gameplaySession]);
+  }, [
+    apiBase,
+    gate.blocked,
+    gate.message,
+    tavernId,
+    gameplaySession,
+    refreshVersion,
+  ]);
 
-  return state;
+  return { state, refresh };
 }
