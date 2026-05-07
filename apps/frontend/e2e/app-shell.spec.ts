@@ -79,6 +79,98 @@ async function mockTavernState(page: import("@playwright/test").Page) {
   });
 }
 
+async function mockBattleSocketWithOutcome(
+  page: import("@playwright/test").Page,
+) {
+  await page.addInitScript(() => {
+    const NativeWebSocket = window.WebSocket;
+    window.WebSocket = new Proxy(NativeWebSocket, {
+      construct(target, args) {
+        const [url] = args as [string | URL];
+        const parsedUrl = String(url);
+        if (!parsedUrl.includes("/v1/ws/battles/")) {
+          return Reflect.construct(target, args);
+        }
+        const listeners = new Map<string, Set<(event: Event) => void>>();
+        const socket = {
+          url: parsedUrl,
+          readyState: NativeWebSocket.OPEN,
+          onopen: null as ((event: Event) => void) | null,
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          onerror: null as ((event: Event) => void) | null,
+          onclose: null as ((event: CloseEvent) => void) | null,
+          send() {},
+          close() {
+            socket.readyState = NativeWebSocket.CLOSED;
+            const event = new CloseEvent("close");
+            socket.onclose?.(event);
+            listeners.get("close")?.forEach((handler) => {
+              handler(event);
+            });
+          },
+          addEventListener(type: string, handler: (event: Event) => void) {
+            const bucket = listeners.get(type) ?? new Set();
+            bucket.add(handler);
+            listeners.set(type, bucket);
+          },
+          removeEventListener(type: string, handler: (event: Event) => void) {
+            listeners.get(type)?.delete(handler);
+          },
+          dispatchEvent(event: Event) {
+            listeners.get(event.type)?.forEach((handler) => {
+              handler(event);
+            });
+            return true;
+          },
+        };
+        setTimeout(() => {
+          const openEvent = new Event("open");
+          socket.onopen?.(openEvent);
+          socket.dispatchEvent(openEvent);
+          const snapshotEvent = new MessageEvent("message", {
+            data: JSON.stringify({
+              kind: "snapshot",
+              type: "battle.snapshot",
+              server_seq: 1,
+              payload: {
+                battle_id: "00000000-0000-0000-0000-000000000222",
+                phase: "active",
+                raid_lead_player_id: "00000000-0000-0000-0000-000000000010",
+                party_order: [],
+                entities: [],
+                last_raid_lead_command: null,
+              },
+            }),
+          });
+          socket.onmessage?.(snapshotEvent);
+          socket.dispatchEvent(snapshotEvent);
+          const outcomeEvent = new MessageEvent("message", {
+            data: JSON.stringify({
+              kind: "event",
+              type: "battle.event",
+              server_seq: 2,
+              payload: {
+                event_type: "raid_outcome_resolved",
+                raid_id: "00000000-0000-0000-0000-000000000777",
+                status: "completed",
+                approved_failed_progress: false,
+                reward_points_per_member: 30,
+                claim_status: "already_claimed",
+                reward_record_ids: ["reward-1"],
+                newly_issued_reward_record_ids: [],
+                existing_reward_record_ids: ["reward-1"],
+              },
+            }),
+          });
+          socket.onmessage?.(outcomeEvent);
+          socket.dispatchEvent(outcomeEvent);
+        }, 0);
+        return socket as unknown as WebSocket;
+      },
+    });
+  });
+}
+
 test.describe("app shell (mobile viewport)", () => {
   test("shows network status strip and enables primary CTA when API healthy", async ({
     page,
@@ -336,5 +428,45 @@ test.describe("app shell (mobile viewport)", () => {
     );
     await expect(page.getByTestId("combat-resource")).toContainText(/1$/);
     await expect(page.getByTestId("combat-skill-quick-shot")).toBeDisabled();
+  });
+
+  test("renders raid result/reward card for already-claimed outcome", async ({
+    page,
+  }) => {
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", postgres: "reachable" }),
+      });
+    });
+    await mockTavernState(page);
+    await mockBattleSocketWithOutcome(page);
+    await page.route("**/v1/raids", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "00000000-0000-0000-0000-000000000777",
+          party_id: "00000000-0000-0000-0000-000000000222",
+          raid_template_id: "tutorial_solo_v1",
+          status: "pending",
+        }),
+      });
+    });
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("primary-cta").click();
+
+    await expect(page.getByTestId("raid-result-reward")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("raid-result-reward")).toContainText(
+      /raid completed/i,
+    );
+    await expect(page.getByTestId("reward-claim-state")).toContainText(
+      /already claimed/i,
+    );
+    await expect(page.getByTestId("cta-repeat-raid")).toBeVisible();
   });
 });
