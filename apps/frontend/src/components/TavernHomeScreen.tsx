@@ -436,7 +436,13 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
         message: "Reward claim failed. Please retry in a moment.",
       });
     }
-  }, [apiBaseUrl, gameplaySession, raidOutcome, refreshTavernState, rewardClaim.status]);
+  }, [
+    apiBaseUrl,
+    gameplaySession,
+    raidOutcome,
+    refreshTavernState,
+    rewardClaim.status,
+  ]);
 
   if (home.status === "blocked") {
     return (

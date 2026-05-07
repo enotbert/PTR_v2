@@ -108,7 +108,10 @@ export function useTavernHomeState(
 
     setState({
       status: "loading",
-      message: "Loading tavern state…",
+      message:
+        refreshVersion > 0
+          ? "Refreshing tavern state…"
+          : "Loading tavern state…",
     });
 
     const client = createBearerApiClient(apiBase, gameplaySession.sessionId);
@@ -162,7 +165,14 @@ export function useTavernHomeState(
       ac.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [apiBase, gate.blocked, gate.message, tavernId, gameplaySession, refreshVersion]);
+  }, [
+    apiBase,
+    gate.blocked,
+    gate.message,
+    tavernId,
+    gameplaySession,
+    refreshVersion,
+  ]);
 
   return { state, refresh };
 }
