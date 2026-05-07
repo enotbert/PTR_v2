@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBearerApiClient } from "../api/client";
 import { mapBattleSnapshotToCanvas } from "../battle/mapBattleSnapshotToCanvas";
 import type { components } from "../generated/api-types";
@@ -111,7 +111,10 @@ function initialClaimUiState(
 }
 
 export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
-  const home = useTavernHomeState(connectivity, gameplaySession);
+  const { state: home, refresh: refreshTavernState } = useTavernHomeState(
+    connectivity,
+    gameplaySession,
+  );
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [invalidTargetReason, setInvalidTargetReason] = useState<string | null>(
@@ -128,6 +131,7 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
     status: "idle",
     message: null,
   });
+  const contributionEventRaidIdsRef = useRef<Set<string>>(new Set());
 
   const apiBaseUrl = useMemo(
     () => import.meta.env.VITE_API_BASE_URL?.trim() ?? "",
@@ -234,7 +238,24 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
         raidOutcome.rewardPointsPerMember,
       ),
     );
-  }, [raidOutcome]);
+    if (
+      raidOutcome.rewardPointsPerMember > 0 &&
+      !contributionEventRaidIdsRef.current.has(raidOutcome.raidId)
+    ) {
+      contributionEventRaidIdsRef.current.add(raidOutcome.raidId);
+      refreshTavernState();
+      window.dispatchEvent(
+        new CustomEvent("tavern_contribution_made", {
+          detail: {
+            raidId: raidOutcome.raidId,
+            status: raidOutcome.status,
+            points: raidOutcome.rewardPointsPerMember,
+            claimStatus: raidOutcome.claimStatus,
+          },
+        }),
+      );
+    }
+  }, [raidOutcome, refreshTavernState]);
 
   const handleStartFirstRaid = useCallback(async () => {
     if (home.status !== "ready") {
@@ -395,6 +416,7 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
           status: "claimed",
           message: "Reward successfully claimed.",
         });
+        refreshTavernState();
         return;
       }
       if (response?.status === 409) {
@@ -414,7 +436,7 @@ export function TavernHomeScreen({ connectivity, gameplaySession }: Props) {
         message: "Reward claim failed. Please retry in a moment.",
       });
     }
-  }, [apiBaseUrl, gameplaySession, raidOutcome, rewardClaim.status]);
+  }, [apiBaseUrl, gameplaySession, raidOutcome, refreshTavernState, rewardClaim.status]);
 
   if (home.status === "blocked") {
     return (
